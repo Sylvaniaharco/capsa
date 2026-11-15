@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "Capsa Kung2",
+  "short_name": "Capsa Kung2",
+  "description": "Capsa susun 13 kartu: kamu lawan 3 pemain, meja koin 5, 10, dan 20 per poin.",
+  "lang": "id",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#071d18",
+  "theme_color": "#071d18",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

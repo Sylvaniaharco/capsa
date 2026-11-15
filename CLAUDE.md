@@ -13,7 +13,7 @@ Capsa susun 13 kartu di browser: main sendiri vs 3 AI, meja koin 5/10/20 per poi
 
 ## Stack
 
-- HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler, tanpa dependensi npm. Belum ada backend/akun.
+- HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler, tanpa dependensi npm. Belum ada backend sendiri; akun memakai server Mahjong.
 - `npm run build` menyalin `index.html`, `manifest.webmanifest`, `css`, `src`, `avatars`, `icons` ke `dist/games/capsa/`, lalu mengisi
   `sw.js` (daftar precache + versi dari hash isi) dan `version.json`. File/folder statis baru → daftarkan di `scripts/build.mjs`.
 - Deploy otomatis oleh Cloudflare dari branch `main` (Worker `capsa`, assets saja; build `npm run build`, deploy `npx wrangler deploy`).
@@ -41,8 +41,15 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/`.
   Ubah aturan → update README + tes (`test/scoring.test.js`, `test/special.test.js`), lalu `npm run calibrate`
   karena AI menaksir nilai susunan dari bonus & pengali itu.
 - `src/engine/strength-data.js` dibuat otomatis; jangan diedit tangan.
-- Koin mengikuti Mahjong Kung2 (`src/engine/wallet.js`: STAKES, STAKE_MIN, reset 00.01 WIB). Sekarang disimpan di `localStorage`,
-  jadi belum bisa dipercaya; kalau nanti ada akun/online, koin wajib dihitung di server.
+- **Akun & koin jadi satu dengan Mahjong Kung2** (keputusan Teddy, 15 Nov 2026). `src/ui/account.js` memanggil API Mahjong dari origin
+  yang sama: `GET /games/mahjonghk/api/me` (nama + saldo koin akun), `/config`, `POST /auth/logout`, `POST /errors` (mode `capsa`, masuk
+  dashboard admin Mahjong). Login: `/games/mahjonghk/api/auth/google?next=capsa` → kembali ke `/games/capsa/?login=ok`. Tamu Mahjong
+  dihitung belum masuk. Fitur ini hanya aktif kalau game dibuka dari `/games/capsa/`; di tempat lain state-nya `off` dan game jalan biasa.
+  Kontrak API-nya ada di repo games-mahjong0hk (`worker/index.js`, `worker/next.js`) — perubahan di sana bisa merusak sini.
+- Ada **dua saldo** untuk sementara: koin akun (server, dipakai bersama Mahjong, di Capsa baru ditampilkan) dan koin meja lawan AI
+  (`src/engine/wallet.js`, di `localStorage`, tidak bisa dipercaya). Koin akun **tidak boleh** berubah dari permainan lawan AI atau dari
+  apa pun yang dihitung di HP. Rencana: meja online/Ranked memakai koin akun dan dihitung di server; setelah itu meja koin lawan AI
+  jadi latihan saja.
 - Hasil ronde dihitung & disimpan (`settle` di `src/main.js`) sebelum animasi buka kartu, supaya menutup halaman tidak membatalkan ronde.
 - Bot = karakter & nama yang sama dengan Mahjong Kung2: `src/engine/roster.js` + `avatars/1..12.webp` adalah salinan dari
   games-mahjong0hk (kalau di sana berubah, salin lagi). Avatar pemain ikut pilihan di Mahjong (`hkmj-settings-v1` di localStorage, satu domain).

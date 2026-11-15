@@ -6,6 +6,7 @@ import { scoreRound, duelFor, rowBonus } from './engine/scoring.js';
 import { solve } from './engine/arrange.js';
 import { ROWS, ROW_NAMES, SPECIAL_NAMES, ARRANGE_SECONDS } from './engine/rules.js';
 import { STAKES, minEntry, normalizeWallet, coinDelta, applyDelta, isBroke, START_COINS } from './engine/wallet.js';
+import { pickBots, clampAvatar, AVATAR_COUNT } from './engine/roster.js';
 import { cardEl, backEl } from './ui/cardview.js';
 import { sfx, setSound } from './ui/sfx.js';
 
@@ -146,27 +147,29 @@ $('#btnRules').addEventListener('click', () => {
 });
 
 // ---------- meja ----------
-const BOT_POOL = [
-  ['Koh Aseng', '#d8672d'], ['Cici Mei', '#c2408f'], ['Bang Jago', '#2d6fd8'], ['Mbak Sari', '#8a4fd8'],
-  ['Om Budi', '#3b8f3b'], ['Ko Hendra', '#b8324a'], ['Tante Lily', '#c79a16'], ['Mas Dimas', '#22879c'],
-];
+// Bot = karakter & nama yang sama dengan Mahjong Kung2 (src/engine/roster.js, gambar di avatars/).
+const avatarSrc = (i) => `avatars/${(i % AVATAR_COUNT) + 1}.webp`;
+/** Avatar pemain: ikut pilihan di Mahjong Kung2 kalau ada (satu domain = satu localStorage), kalau tidak avatar pertama. */
+function myAvatar() {
+  try { return clampAvatar(JSON.parse(localStorage.getItem('hkmj-settings-v1') || '{}').avatar) ?? 0; } catch { return 0; }
+}
 let G = null; // { stake, gen, seats:[{name,color,coins,isMe}], round }
 const seatEl = (i) => $(`.seat[data-seat="${i}"]`);
 
 function enterTable(stake) {
-  const pool = [...BOT_POOL].sort(() => Math.random() - 0.5).slice(0, 3);
+  const mine = myAvatar();
   const unit = stake || 5;
   G = {
     stake, gen: 0, round: null, fast: false,
     seats: [
-      { name: 'Kamu', color: '#0f6e57', isMe: true, initial: '★' },
-      ...pool.map(([name, color]) => ({ name, color, coins: unit * (300 + Math.floor(Math.random() * 1700)) })),
+      { name: 'Kamu', avatar: mine, isMe: true },
+      ...pickBots(3, [mine], Math.random).map((b) => ({ ...b, coins: unit * (300 + Math.floor(Math.random() * 1700)) })),
     ],
   };
   show('table');
   $('#tbInfo').innerHTML = stake ? `Meja <b>${stake}</b> koin / poin` : 'Meja <b>Latihan</b> · tanpa koin';
   G.seats.forEach((s, i) => {
-    seatEl(i).innerHTML = `<div class="who"><div class="ava" style="--c:${s.color}">${esc(s.initial || s.name.split(' ').pop()[0])}</div>
+    seatEl(i).innerHTML = `<div class="who"><div class="ava"><img src="${avatarSrc(s.avatar)}" alt="" draggable="false"></div>
       <div class="nm"><b>${esc(s.name)}</b><span class="coins"><i class="coin"></i> <span data-coins></span></span></div></div>
       <div class="handwrap"><div class="hand"><div class="hrow"></div><div class="hrow"></div><div class="hrow"></div></div><div class="cap"></div><div class="tag"></div></div>
       <div class="pts"></div>`;

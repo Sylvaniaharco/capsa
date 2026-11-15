@@ -14,7 +14,7 @@ Capsa susun 13 kartu di browser: main sendiri vs 3 AI, meja koin 5/10/20 per poi
 ## Stack
 
 - HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler, tanpa dependensi npm. Belum ada backend/akun.
-- `npm run build` menyalin `index.html`, `css`, `src` ke `dist/games/capsa/`. File/folder statis baru → daftarkan di `scripts/build.mjs`.
+- `npm run build` menyalin `index.html`, `css`, `src`, `avatars` ke `dist/games/capsa/`. File/folder statis baru → daftarkan di `scripts/build.mjs`.
 - Belum di-deploy; `wrangler.jsonc` disiapkan (assets saja). Kalau nanti disambung ke Cloudflare dari `main`, merge ke `main` = live.
 
 ## Perintah
@@ -38,6 +38,8 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/`.
 - Koin mengikuti Mahjong Kung2 (`src/engine/wallet.js`: STAKES, STAKE_MIN, reset 00.01 WIB). Sekarang disimpan di `localStorage`,
   jadi belum bisa dipercaya; kalau nanti ada akun/online, koin wajib dihitung di server.
 - Hasil ronde dihitung & disimpan (`settle` di `src/main.js`) sebelum animasi buka kartu, supaya menutup halaman tidak membatalkan ronde.
+- Bot = karakter & nama yang sama dengan Mahjong Kung2: `src/engine/roster.js` + `avatars/1..12.webp` adalah salinan dari
+  games-mahjong0hk (kalau di sana berubah, salin lagi). Avatar pemain ikut pilihan di Mahjong (`hkmj-settings-v1` di localStorage, satu domain).
 - Teks UI bahasa Indonesia. Ikon lambang kartu pakai SVG `<symbol>` di `index.html` (bukan karakter ♠♥, yang di Android bisa jadi emoji).
 
 ## UI yang perlu diingat

@@ -9,5 +9,5 @@ const out = join(root, 'dist', 'games', 'capsa');
 
 rmSync(join(root, 'dist'), { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
-for (const item of ['index.html', 'css', 'src']) cpSync(join(root, item), join(out, item), { recursive: true });
+for (const item of ['index.html', 'css', 'src', 'avatars']) cpSync(join(root, item), join(out, item), { recursive: true });
 console.log('Build selesai →', out);

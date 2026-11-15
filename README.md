@@ -57,5 +57,7 @@ alamatnya nanti `sylvaniaharco.com/games/capsa/`.
 - `src/engine/` — murni, tanpa DOM: `cards` (kartu + RNG berseed), `hands` (nilai kombinasi), `special` (kartu spesial),
   `rules` (semua angka aturan), `scoring` (poin ronde), `arrange` (pencari susunan terbaik untuk AI & tombol Saran),
   `strength-data` (tabel hasil `npm run calibrate`), `wallet` (koin).
+- `src/engine/roster.js` + `avatars/` — nama & karakter bot, sama dengan Mahjong Kung2 (Dominic, Sebastian, Joy, Elaina, Ellery, Elon,
+  Elton, Jason, James, Jordan, KungKung, PoPo).
 - `src/ui/` — `cardview` (kartu DOM), `sfx` (suara); `src/main.js` — alur layar; `css/style.css`; `index.html`.
 - `scripts/` — `build`, `simulate`, `calibrate`; `test/` — tes engine.

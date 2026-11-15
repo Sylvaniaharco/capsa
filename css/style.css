@@ -127,6 +127,7 @@ button { font: inherit; color: inherit; }
     var(--bg);
   overflow: auto;
 }
+#app.portrait .emblem { --mw: 2.9em; }
 #app.portrait #lobby {
   font-size: clamp(14px, min(calc(var(--vw) * 2.6), calc(var(--vh) * 1.7)), 24px);
   grid-template-columns: minmax(0, 34em); align-content: center; gap: 1.6em;
@@ -143,7 +144,15 @@ button { font: inherit; color: inherit; }
   font-size: 1.12em; color: var(--accent); font-variant-numeric: tabular-nums;
 }
 .lb-note { margin: .3em 0 0; max-width: 36ch; color: #ffd9a8; font-size: .93em; }
-.emblem { --mw: 2.9em; display: flex; flex-direction: column; align-items: center; margin-bottom: .4em; }
+.wallet small { font-size: .72em; color: var(--muted); font-weight: 600; }
+.lb-acc { display: flex; flex-direction: column; align-items: center; gap: .35em; margin-top: .2em; }
+.lb-acc p { margin: 0; max-width: 40ch; font-size: .86em; color: var(--muted); text-wrap: balance; }
+#lobby .btn.google { display: inline-flex; align-items: center; gap: .6em; background: #fff; color: #1f1f1f; border-color: #fff; text-decoration: none; }
+.btn.google svg { width: 1.25em; height: 1.25em; flex: 0 0 auto; }
+#lobby .btn.acct { display: inline-flex; align-items: center; gap: .6em; padding: .3em .95em .3em .35em; border-color: rgba(255, 207, 74, .45); }
+.btn.acct img { width: 2.1em; height: 2.1em; border-radius: 50%; object-fit: cover; background: #cfe3f2; }
+.btn.acct span { color: var(--accent); font-variant-numeric: tabular-nums; }
+.emblem { --mw: min(2.9em, calc(var(--vh) * 6.6)); display: flex; flex-direction: column; align-items: center; margin-bottom: .4em; }
 .emblem .hrow { display: flex; height: calc(var(--mw) * .8); }
 .emblem .hrow:last-child { height: auto; }
 .emblem .card { margin-left: calc(var(--mw) * -.34); }

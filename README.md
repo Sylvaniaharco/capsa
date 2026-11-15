@@ -30,11 +30,19 @@ Hal yang diputuskan saat membuat (ubah di `src/engine/rules.js` kalau maunya lai
 - Urutan kombinasi poker biasa; As paling tinggi, A-2-3-4-5 straight paling kecil; lambang tidak dipakai (nilai sama = seri).
 - Susunan salah (mis. Atas lebih kuat dari Tengah) tidak bisa dikirim; kalau waktu 60 detik habis, kartu disusun otomatis.
 
-## Koin
+## Akun dan koin
 
-Ikut sistem Mahjong Kung2: saldo awal 1.000, meja 5 / 10 / 20 koin per poin, saldo minimal masuk 100 / 5.000 / 10.000.
-Saldo tidak bisa di bawah 0. Kalau saldo kurang dari 100, direset ke 1.000 jam 00.01 WIB hari berikutnya; sementara itu
-ada meja **Latihan** (tanpa koin). Saat ini koin disimpan di HP (`localStorage`), belum tersambung ke akun Mahjong Kung2.
+Akun jadi satu dengan Mahjong Kung2: tombol **Masuk dengan Google** di lobi memakai login Mahjong (satu domain), dan lobi menampilkan
+nama serta **koin akun** yang sama dengan di Mahjong. Keluar dari akun di Capsa berarti keluar juga dari Mahjong di HP itu.
+
+Untuk sementara ada dua saldo:
+
+- **Koin akun** (di server, dipakai bersama Mahjong): di Capsa baru ditampilkan, belum dipakai. Nanti dipakai di meja online/Ranked.
+- **Koin meja lawan AI** (di HP, `localStorage`): mengikuti aturan Mahjong — saldo awal 1.000, meja 5 / 10 / 20 koin per poin, saldo
+  minimal masuk 100 / 5.000 / 10.000, tidak bisa di bawah 0, dan kalau kurang dari 100 direset ke 1.000 jam 00.01 WIB hari berikutnya.
+  Ada juga meja **Latihan** (tanpa koin).
+
+Error JavaScript dari HP pemain dikirim ke dashboard admin Mahjong (bagian error, mode `capsa`).
 
 ## Main di lokal
 
@@ -62,6 +70,6 @@ Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file st
   `strength-data` (tabel hasil `npm run calibrate`), `wallet` (koin).
 - `src/engine/roster.js` + `avatars/` — nama & karakter bot, sama dengan Mahjong Kung2 (Dominic, Sebastian, Joy, Elaina, Ellery, Elon,
   Elton, Jason, James, Jordan, KungKung, PoPo).
-- `src/ui/` — `cardview` (kartu DOM), `sfx` (suara), `install` (tombol pasang aplikasi); `src/main.js` — alur layar; `css/style.css`; `index.html`.
+- `src/ui/` — `cardview` (kartu DOM), `sfx` (suara), `install` (tombol pasang aplikasi), `account` (akun bersama Mahjong + laporan error); `src/main.js` — alur layar; `css/style.css`; `index.html`.
 - PWA: `manifest.webmanifest`, `sw.js` (diisi saat build), `icons/` (sumber `icon.svg`, PNG dari `scripts/icons.cjs`).
 - `scripts/` — `build`, `simulate`, `calibrate`, `icons`; `test/` — tes engine.

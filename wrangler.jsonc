@@ -1,7 +1,8 @@
 {
-  // Worker games-capsa: hanya file statis (hasil `npm run build` di dist), belum ada API.
+  // Worker capsa: hanya file statis (hasil `npm run build` di dist), belum ada API.
   // Game disajikan di sylvaniaharco.com/games/capsa/ (pola yang sama dengan games-mahjong0hk).
-  "name": "games-capsa",
+  // Nama harus sama dengan nama Worker di Cloudflare (yang tersambung ke repo ini).
+  "name": "capsa",
   "compatibility_date": "2026-10-01",
   "assets": { "directory": "./dist" },
   "routes": [{ "pattern": "sylvaniaharco.com/games/capsa*", "zone_name": "sylvaniaharco.com" }]

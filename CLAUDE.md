@@ -1,7 +1,7 @@
 # capsa — "Capsa Kung2"
 
 Capsa susun 13 kartu di browser: main sendiri vs 3 AI, meja koin 5/10/20 per poin. Saudara dari games-mahjong0hk
-("Mahjong Kung2"), rencananya di `sylvaniaharco.com/games/capsa/`. README menjelaskan aturan & keputusan aturan.
+("Mahjong Kung2"). Live di https://sylvaniaharco.com/games/capsa/. README menjelaskan aturan & keputusan aturan.
 
 ## Cara kerja dengan Teddy (pemilik)
 
@@ -15,7 +15,9 @@ Capsa susun 13 kartu di browser: main sendiri vs 3 AI, meja koin 5/10/20 per poi
 
 - HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler, tanpa dependensi npm. Belum ada backend/akun.
 - `npm run build` menyalin `index.html`, `css`, `src`, `avatars` ke `dist/games/capsa/`. File/folder statis baru → daftarkan di `scripts/build.mjs`.
-- Belum di-deploy; `wrangler.jsonc` disiapkan (assets saja). Kalau nanti disambung ke Cloudflare dari `main`, merge ke `main` = live.
+- Deploy otomatis oleh Cloudflare dari branch `main` (Worker `capsa`, assets saja; build `npm run build`, deploy `npx wrangler deploy`).
+  **Merge/push ke `main` = langsung live.** Kerjakan di branch, lalu buat PR; CI (`.github/workflows/test.yml`) harus hijau sebelum merge.
+  `name` di `wrangler.jsonc` harus tetap sama dengan nama Worker di Cloudflare (`capsa`).
 
 ## Perintah
 

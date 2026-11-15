@@ -18,6 +18,9 @@ Capsa susun 13 kartu di browser: main sendiri vs 3 AI, meja koin 5/10/20 per poi
 - Deploy otomatis oleh Cloudflare dari branch `main` (Worker `capsa`, assets saja; build `npm run build`, deploy `npx wrangler deploy`).
   **Merge/push ke `main` = langsung live.** Kerjakan di branch, lalu buat PR; CI (`.github/workflows/test.yml`) harus hijau sebelum merge.
   `name` di `wrangler.jsonc` harus tetap sama dengan nama Worker di Cloudflare (`capsa`).
+- **Izin tetap dari Teddy (15 Nov 2026): setelah selesai, langsung buat PR dan merge ke `main` tanpa tanya dulu** (squash). Syaratnya:
+  `npm test` lolos dan CI PR hijau (tunggu dulu; jangan merge kalau merah). Setelah merge, kabari Teddy singkat (nomor PR + apa yang
+  berubah). Berlaku di sesi berikutnya juga. Kalau branch kerja sudah pernah di-squash-merge, mulai lagi dari `origin/main`.
 
 ## Perintah
 

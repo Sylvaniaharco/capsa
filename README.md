@@ -46,6 +46,9 @@ npm run sim    # 2000 ronde AI vs AI: cek zero-sum, sebaran poin, frekuensi temb
 
 `?seed=123` di alamat membuat kartu ronde pertama bisa diulang (untuk mengecek bug).
 
+Ronde yang sedang disusun tersimpan di HP: kalau app tertutup, saat dibuka lagi ronde yang sama dilanjutkan (kartu & lawan sama),
+dan kalau waktunya sudah habis ronde langsung diselesaikan dengan susunan terakhir (atau otomatis kalau susunannya tidak sah).
+
 ## Deploy
 
 Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file statis saja). Repo ini tersambung ke Cloudflare
@@ -59,5 +62,6 @@ Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file st
   `strength-data` (tabel hasil `npm run calibrate`), `wallet` (koin).
 - `src/engine/roster.js` + `avatars/` — nama & karakter bot, sama dengan Mahjong Kung2 (Dominic, Sebastian, Joy, Elaina, Ellery, Elon,
   Elton, Jason, James, Jordan, KungKung, PoPo).
-- `src/ui/` — `cardview` (kartu DOM), `sfx` (suara); `src/main.js` — alur layar; `css/style.css`; `index.html`.
-- `scripts/` — `build`, `simulate`, `calibrate`; `test/` — tes engine.
+- `src/ui/` — `cardview` (kartu DOM), `sfx` (suara), `install` (tombol pasang aplikasi); `src/main.js` — alur layar; `css/style.css`; `index.html`.
+- PWA: `manifest.webmanifest`, `sw.js` (diisi saat build), `icons/` (sumber `icon.svg`, PNG dari `scripts/icons.cjs`).
+- `scripts/` — `build`, `simulate`, `calibrate`, `icons`; `test/` — tes engine.

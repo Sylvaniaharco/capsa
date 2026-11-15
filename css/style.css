@@ -117,39 +117,44 @@ button { font: inherit; color: inherit; }
 @keyframes dealt { from { opacity: 0; transform: translateY(-14px) scale(.8); } to { opacity: 1; transform: none; } }
 
 /* ---------- lobi ---------- */
+/* Semua ukuran lobi pakai em dari font-size ini, jadi di layar besar (desktop/tablet) ikut membesar. */
 #lobby {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: center; gap: 4%;
-  padding: 16px var(--gut-r) 16px var(--gut-l);
+  font-size: clamp(14px, min(calc(var(--vw) * 1.3), calc(var(--vh) * 2.3)), 24px);
+  display: grid; grid-template-columns: minmax(0, 30em) minmax(0, 40em); align-items: center; justify-content: center; gap: 3em;
+  padding: 1.1em var(--gut-r) 1.1em var(--gut-l);
   background:
     radial-gradient(ellipse at 28% 45%, rgba(31, 128, 104, .55), transparent 62%),
     var(--bg);
   overflow: auto;
 }
-#app.portrait #lobby { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 18px; padding-top: 22px; }
-.lb-brand { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; min-width: 0; }
-.lb-brand h1 { margin: 0; font-size: clamp(28px, calc(var(--vh) * 9.5), 54px); letter-spacing: -.02em; line-height: 1; }
+#app.portrait #lobby {
+  font-size: clamp(14px, min(calc(var(--vw) * 2.6), calc(var(--vh) * 1.7)), 24px);
+  grid-template-columns: minmax(0, 34em); align-content: center; gap: 1.6em;
+}
+#lobby .btn { font-size: 1em; padding: .6em 1.1em; min-height: 2.8em; }
+.lb-brand { display: flex; flex-direction: column; align-items: center; gap: .55em; text-align: center; min-width: 0; }
+.lb-brand h1 { margin: 0; font-size: 3.2em; letter-spacing: -.02em; line-height: 1; }
 .lb-brand h1 span { color: var(--accent); font-style: italic; }
 .lb-tag { margin: 0; color: var(--muted); }
-.lb-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
+.lb-row { display: flex; flex-wrap: wrap; justify-content: center; gap: .55em; margin-top: .3em; }
 .wallet {
-  display: flex; align-items: center; gap: 7px; padding: 8px 14px; min-height: 40px; border-radius: 999px;
+  display: flex; align-items: center; gap: .45em; padding: .5em .9em; min-height: 2.5em; border-radius: 999px;
   background: rgba(0, 0, 0, .4); border: 1px solid rgba(255, 207, 74, .4);
-  font-size: 16px; color: var(--accent); font-variant-numeric: tabular-nums;
+  font-size: 1.12em; color: var(--accent); font-variant-numeric: tabular-nums;
 }
-.lb-note { margin: 4px 0 0; max-width: 36ch; color: #ffd9a8; font-size: 13px; }
-.emblem { --mw: clamp(26px, calc(var(--vh) * 9), 46px); margin-bottom: 6px; display: flex; flex-direction: column; align-items: center; }
-#app.portrait .emblem { --mw: clamp(26px, calc(var(--vw) * 9), 46px); }
+.lb-note { margin: .3em 0 0; max-width: 36ch; color: #ffd9a8; font-size: .93em; }
+.emblem { --mw: 2.9em; display: flex; flex-direction: column; align-items: center; margin-bottom: .4em; }
 .emblem .hrow { display: flex; height: calc(var(--mw) * .8); }
 .emblem .hrow:last-child { height: auto; }
 .emblem .card { margin-left: calc(var(--mw) * -.34); }
 .emblem .card:first-child { margin-left: 0; }
 
-.lb-tables { min-width: 0; }
-.lb-tables h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
-.tables { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.lb-tables { min-width: 0; max-width: 42em; }
+.lb-tables h2 { margin: 0 0 .75em; font-size: .93em; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+.tables { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7em; }
 .tbl {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 12px;
-  padding: 12px 14px; border-radius: 16px; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: .85em;
+  padding: .85em 1em; border-radius: 1.1em; text-align: left; cursor: pointer; font-size: 1em;
   background: linear-gradient(160deg, rgba(31, 128, 104, .5), rgba(11, 69, 55, .75));
   border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
   transition: transform .1s, border-color .15s;
@@ -157,15 +162,27 @@ button { font: inherit; color: inherit; }
 .tbl:active { transform: scale(.98); }
 .tbl:hover { border-color: rgba(255, 207, 74, .6); }
 .tbl .chip {
-  --c: #2c8f73; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
-  font-weight: 900; font-size: 19px; color: #fff;
+  --c: #2c8f73; width: 3.7em; height: 3.7em; border-radius: 50%; display: grid; place-items: center; color: #fff;
   background: radial-gradient(circle, var(--c) 0 56%, transparent 57%), repeating-conic-gradient(#fff 0 20deg, var(--c) 20deg 45deg);
   box-shadow: 0 0 0 2px rgba(0, 0, 0, .35), 0 3px 6px rgba(0, 0, 0, .4);
 }
-.tbl b { display: block; font-size: 16px; }
-.tbl small { display: block; color: var(--muted); font-size: 12.5px; }
+.tbl .chip i { font-style: normal; font-weight: 900; font-size: 1.35em; }
+.tbl b { display: block; font-size: 1.15em; }
+.tbl small { display: block; color: var(--muted); font-size: .9em; }
 .tbl.locked { opacity: .55; cursor: not-allowed; }
 .tbl.locked small { color: #ffd9a8; }
+
+/* ---------- cara main ---------- */
+.tut { display: flex; gap: 16px; align-items: center; }
+.tut-hand { --mw: 30px; display: flex; flex-direction: column; gap: 5px; flex: 0 0 auto; }
+.tut-row { display: flex; align-items: center; gap: 8px; }
+.tut-row > span { width: 62px; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); line-height: 1.25; }
+.tut-row small { display: block; font-size: 11.5px; text-transform: none; letter-spacing: 0; color: var(--text); font-weight: 700; }
+.tut-row .hrow { height: auto; }
+.tut-row .hrow .card { margin-left: 2px; }
+.tut ol { margin: 0; padding-left: 20px; }
+.tut li { margin-bottom: 5px; }
+#app.portrait .tut { flex-direction: column; align-items: flex-start; }
 
 /* ---------- meja ---------- */
 #table { background: var(--bg); }

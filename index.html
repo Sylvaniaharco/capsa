@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#071d18" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Capsa Kung2</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="su0" viewBox="0 0 24 24"><path d="M12 1.5 20 12 12 22.5 4 12Z" /></symbol>
+      <symbol id="su1" viewBox="0 0 24 24"><circle cx="12" cy="6.9" r="4.7" /><circle cx="6.4" cy="14" r="4.7" /><circle cx="17.6" cy="14" r="4.7" /><path d="M10.6 11h2.8c0 5 .7 8.6 2.4 11.5H8.2c1.7-2.9 2.4-6.5 2.4-11.5Z" /></symbol>
+      <symbol id="su2" viewBox="0 0 24 24"><path d="M12 22C5.2 16.3 2 12.3 2 8.2A5.3 5.3 0 0 1 12 5.8 5.3 5.3 0 0 1 22 8.2C22 12.3 18.8 16.3 12 22Z" /></symbol>
+      <symbol id="su3" viewBox="0 0 24 24"><path d="M12 1.5C8.5 6.5 2.5 9.3 2.5 14.2a4.7 4.7 0 0 0 8.3 3c-.3 2-1.1 3.8-2.3 5.3h7c-1.2-1.5-2-3.3-2.3-5.3a4.7 4.7 0 0 0 8.3-3C21.5 9.3 15.5 6.5 12 1.5Z" /></symbol>
+    </defs>
+  </svg>
+
+  <div id="app">
+    <!-- LOBI -->
+    <section id="lobby" class="screen">
+      <div class="lb-brand">
+        <div id="emblem" class="emblem" aria-hidden="true"></div>
+        <h1>Capsa <span>Kung2</span></h1>
+        <p class="lb-tag">Capsa susun 13 kartu &middot; kamu lawan 3 pemain</p>
+        <div class="lb-row">
+          <div class="wallet" title="Koin kamu"><i class="coin"></i><b id="lbCoins">1.0</b></div>
+          <button id="btnRules" class="btn ghost" type="button">Aturan</button>
+          <button id="btnSound" class="btn ghost" type="button" aria-pressed="true">Suara: nyala</button>
+        </div>
+        <p id="lbNote" class="lb-note" hidden></p>
+      </div>
+      <div class="lb-tables">
+        <h2>Pilih meja</h2>
+        <div id="tables" class="tables"></div>
+      </div>
+    </section>
+
+    <!-- MEJA -->
+    <section id="table" class="screen" hidden>
+      <div class="felt"></div>
+      <div class="tb-top">
+        <button id="btnLeave" class="btn ghost small" type="button" aria-label="Keluar meja">&larr; Keluar</button>
+        <div id="tbInfo" class="tb-info"></div>
+      </div>
+      <div class="seat s2" data-seat="2"></div>
+      <div class="seat s3" data-seat="3"></div>
+      <div class="seat s1" data-seat="1"></div>
+      <div class="seat s0" data-seat="0"></div>
+      <div id="center" class="center"></div>
+
+      <!-- SUSUN KARTU -->
+      <div id="arrange" class="arrange" hidden>
+        <div id="arSpecial" class="ar-special" hidden></div>
+        <div class="ar-body">
+          <div class="ar-rows">
+            <div class="arow" data-row="top"><div class="alabel"></div><div class="acards"></div></div>
+            <div class="arow" data-row="mid"><div class="alabel"></div><div class="acards"></div></div>
+            <div class="arow" data-row="bot"><div class="alabel"></div><div class="acards"></div></div>
+          </div>
+          <div class="ar-side">
+            <div id="arTimer" class="timer"><b>60</b></div>
+            <div id="arOpp" class="ar-opp"></div>
+            <button id="btnHint" class="btn" type="button">Saran</button>
+            <button id="btnSort" class="btn" type="button">Urutkan</button>
+            <button id="btnSwap" class="btn" type="button" title="Tukar baris tengah dan bawah">Tukar &#8645;</button>
+            <button id="btnReady" class="btn primary" type="button">Siap</button>
+          </div>
+        </div>
+        <div id="arMsg" class="ar-msg"></div>
+      </div>
+
+      <!-- HASIL -->
+      <div id="result" class="result" hidden></div>
+    </section>
+
+    <div id="modal" class="modal" hidden></div>
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

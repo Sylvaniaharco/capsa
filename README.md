@@ -1,0 +1,61 @@
+# Capsa Kung2
+
+Capsa susun (13 kartu, 3 baris) di browser: kamu lawan 3 AI, dengan meja koin 5 / 10 / 20 per poin.
+HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler, tanpa backend. Jalan di HP (landscape & portrait) dan desktop.
+
+## Aturan
+
+Tiap pemain dapat 13 kartu dan menyusunnya jadi 3 baris: **Atas** 3 kartu, **Tengah** 5 kartu, **Bawah** 5 kartu.
+Bawah harus paling kuat (atau sama), lalu Tengah, lalu Atas. Tiap baris diadu dengan baris yang sama milik tiap lawan.
+
+| Kejadian | Poin |
+| --- | --- |
+| Menang satu baris | +1 (kalah −1, sama kuat 0) |
+| **Tembus** — menang 3 baris dari satu lawan | poin lawan itu ×2 |
+| **Tembus keliling** — tembus ke 3 lawan | ×2 lagi (jadi ×4) |
+| Atas: Tris | bonus +3 |
+| Tengah: Full House / Four of a Kind / Straight Flush / Royal Flush | bonus +3 / +5 / +7 / +11 |
+| Bawah: Four of a Kind / Straight Flush / Royal Flush | bonus +5 / +7 / +11 |
+| **All Straight** (ketiga baris straight) | langsung menang, +4 dari tiap lawan |
+| **All Flush** (ketiga baris flush) | langsung menang, +3 dari tiap lawan |
+| **6 Pair** | langsung menang, +3 dari tiap lawan |
+
+Hal yang diputuskan saat membuat (ubah di `src/engine/rules.js` kalau maunya lain):
+
+- Bonus baris dibayar **hanya kalau baris itu menang**, ditambahkan ke 1 poin menang baris (Tris atas menang = 1 + 3 = 4 poin).
+  Pengali tembus ikut mengalikan bonus.
+- All Straight / All Flush = **ketiga baris** straight / flush (3 + 5 + 5). Dragon 2–A termasuk All Straight.
+- Kartu spesial tidak kena pengali tembus. Dua pemain sama-sama spesial: poin lebih besar menang, sama = seri.
+- Pemain boleh memilih tidak memakai kartu spesial dan menyusun biasa. AI selalu memakainya.
+- Urutan kombinasi poker biasa; As paling tinggi, A-2-3-4-5 straight paling kecil; lambang tidak dipakai (nilai sama = seri).
+- Susunan salah (mis. Atas lebih kuat dari Tengah) tidak bisa dikirim; kalau waktu 60 detik habis, kartu disusun otomatis.
+
+## Koin
+
+Ikut sistem Mahjong Kung2: saldo awal 1.000, meja 5 / 10 / 20 koin per poin, saldo minimal masuk 100 / 5.000 / 10.000.
+Saldo tidak bisa di bawah 0. Kalau saldo kurang dari 100, direset ke 1.000 jam 00.01 WIB hari berikutnya; sementara itu
+ada meja **Latihan** (tanpa koin). Saat ini koin disimpan di HP (`localStorage`), belum tersambung ke akun Mahjong Kung2.
+
+## Main di lokal
+
+```bash
+npm run dev    # python3 -m http.server 8080, lalu buka http://localhost:8080
+npm test       # node --test test/*.test.js
+npm run sim    # 2000 ronde AI vs AI: cek zero-sum, sebaran poin, frekuensi tembus & kartu spesial
+```
+
+`?seed=123` di alamat membuat kartu ronde pertama bisa diulang (untuk mengecek bug).
+
+## Deploy
+
+Belum di-deploy. `wrangler.jsonc` + `npm run build` sudah disiapkan untuk pola yang sama dengan games-mahjong0hk
+(Cloudflare → Workers & Pages → Import a repository; build `npm run build`, deploy `npx wrangler deploy`, branch `main`),
+alamatnya nanti `sylvaniaharco.com/games/capsa/`.
+
+## Struktur
+
+- `src/engine/` — murni, tanpa DOM: `cards` (kartu + RNG berseed), `hands` (nilai kombinasi), `special` (kartu spesial),
+  `rules` (semua angka aturan), `scoring` (poin ronde), `arrange` (pencari susunan terbaik untuk AI & tombol Saran),
+  `strength-data` (tabel hasil `npm run calibrate`), `wallet` (koin).
+- `src/ui/` — `cardview` (kartu DOM), `sfx` (suara); `src/main.js` — alur layar; `css/style.css`; `index.html`.
+- `scripts/` — `build`, `simulate`, `calibrate`; `test/` — tes engine.

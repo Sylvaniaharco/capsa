@@ -1,7 +1,7 @@
 # Capsa Kung2
 
-Capsa susun (13 kartu, 3 baris) di browser: kamu lawan 3 AI, dengan meja koin 5 / 10 / 20 per poin.
-HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler, tanpa backend. Jalan di HP (landscape & portrait) dan desktop.
+Capsa susun (13 kartu, 3 baris) di browser: kamu lawan 3 AI dengan meja koin 5 / 10 / 20 per poin, atau **online bareng teman**.
+HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler. Server: Cloudflare Worker + Durable Object. Jalan di HP (landscape & portrait) dan desktop.
 
 ## Aturan
 
@@ -30,6 +30,16 @@ Hal yang diputuskan saat membuat (ubah di `src/engine/rules.js` kalau maunya lai
 - Urutan kombinasi poker biasa; As paling tinggi, A-2-3-4-5 straight paling kecil; lambang tidak dipakai (nilai sama = seri).
 - Susunan salah (mis. Atas lebih kuat dari Tengah) tidak bisa dikirim; kalau waktu 60 detik habis, kartu disusun otomatis.
 
+## Main bareng teman (online)
+
+Di lobi: **Buat meja** → bagikan kode 5 huruf (atau link `…/games/capsa/#room=KODE`) → teman **Gabung pakai kode** → pembuat meja
+menekan **Mulai**. Kursi yang kosong diisi bot. Tanpa login dan **tanpa koin**: yang dihitung hanya poin, dijumlah selama di meja itu.
+
+- Server yang membagi kartu dan menghitung poin; tiap pemain hanya menerima kartunya sendiri sampai ronde dibuka.
+- Waktu menyusun 60 detik. Yang belum menyusun saat waktu habis disusunkan otomatis.
+- Koneksi putus: game menyambung lagi sendiri; app ditutup lalu dibuka lagi → kembali ke meja yang sama.
+- Keluar di tengah permainan: kursinya dimainkan otomatis. Meja tanpa pemain dihapus setelah 10 menit.
+
 ## Akun dan koin
 
 Akun jadi satu dengan Mahjong Kung2: tombol **Masuk dengan Google** di lobi memakai login Mahjong (satu domain), dan lobi menampilkan
@@ -47,7 +57,8 @@ Error JavaScript dari HP pemain dikirim ke dashboard admin Mahjong (bagian error
 ## Main di lokal
 
 ```bash
-npm run dev    # python3 -m http.server 8080, lalu buka http://localhost:8080
+npm run dev         # python3 -m http.server 8080, lalu buka http://localhost:8080 (tanpa meja online)
+npm run dev:online  # build + wrangler dev, lalu buka http://localhost:8787/games/capsa/ (meja online jalan)
 npm test       # node --test test/*.test.js
 npm run sim    # 2000 ronde AI vs AI: cek zero-sum, sebaran poin, frekuensi tembus & kartu spesial
 ```
@@ -59,7 +70,7 @@ dan kalau waktunya sudah habis ronde langsung diselesaikan dengan susunan terakh
 
 ## Deploy
 
-Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file statis saja). Repo ini tersambung ke Cloudflare
+Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file statis + API meja online di `/games/capsa/api/*`). Repo ini tersambung ke Cloudflare
 (Workers & Pages → Import a repository): build `npm run build`, deploy `npx wrangler deploy`, production branch `main`.
 **Merge/push ke `main` = langsung live.** Route `sylvaniaharco.com/games/capsa*` diatur di `wrangler.jsonc`.
 
@@ -68,6 +79,8 @@ Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file st
 - `src/engine/` — murni, tanpa DOM: `cards` (kartu + RNG berseed), `hands` (nilai kombinasi), `special` (kartu spesial),
   `rules` (semua angka aturan), `scoring` (poin ronde), `arrange` (pencari susunan terbaik untuk AI & tombol Saran),
   `strength-data` (tabel hasil `npm run calibrate`), `wallet` (koin).
+- `src/engine/room.js` — logika meja online (murni); `worker/` — Worker (`index.js`: API) dan Durable Object meja (`room.js`);
+  `src/net/online.js` — klien online.
 - `src/engine/roster.js` + `avatars/` — nama & karakter bot, sama dengan Mahjong Kung2 (Dominic, Sebastian, Joy, Elaina, Ellery, Elon,
   Elton, Jason, James, Jordan, KungKung, PoPo).
 - `src/ui/` — `cardview` (kartu DOM), `sfx` (suara), `install` (tombol pasang aplikasi), `account` (akun bersama Mahjong + laporan error); `src/main.js` — alur layar; `css/style.css`; `index.html`.

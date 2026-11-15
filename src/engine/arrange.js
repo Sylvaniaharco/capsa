@@ -99,21 +99,19 @@ export function solve(cards, { prob = tableProb, keep = 3 } = {}) {
     }));
 }
 
-/** Susunan sederhana untuk pembanding di simulasi: bawah sekuat mungkin, lalu tengah, lalu atas. */
-export function greedy(cards) {
-  let best = null;
+/**
+ * Susunan cepat & pasti sah: bawah = 5 kartu terkuat, tengah = 5 terkuat dari sisanya, atas = 3 sisanya.
+ * Jauh lebih murah dari solve() (±1.300 evaluasi), dipakai server sebagai cadangan (pemain kehabisan waktu / CPU terbatas)
+ * dan sebagai pembanding di simulasi.
+ */
+export function quickArrange(cards) {
+  if (cards.length !== 13) throw new Error('Butuh 13 kartu');
   const pick = (mask) => { const out = []; for (let i = 0; i < 13; i++) if (mask & (1 << i)) out.push(cards[i]); return out; };
-  const val5 = new Map();
-  for (const m of MASKS5) val5.set(m, eval5(pick(m)));
-  for (const b of MASKS5) for (const m of MASKS5) {
-    if (b & m) continue;
-    const vb = val5.get(b), vm = val5.get(m);
-    if (vm > vb) continue;
-    const vt = eval3(pick(FULL ^ b ^ m));
-    if (vt > vm) continue;
-    const score = [vb, vm, vt];
-    if (!best || score[0] > best.score[0] || (score[0] === best.score[0] && (score[1] > best.score[1] || (score[1] === best.score[1] && score[2] > best.score[2])))) best = { score, b, m };
-  }
-  return { top: orderRow(pick(FULL ^ best.b ^ best.m)), mid: orderRow(pick(best.m)), bot: orderRow(pick(best.b)) };
+  let b = 0, vb = -1;
+  for (const m of MASKS5) { const v = eval5(pick(m)); if (v > vb) { vb = v; b = m; } }
+  let mid = 0, vm = -1;
+  for (const m of MASKS5) { if (m & b) continue; const v = eval5(pick(m)); if (v > vm) { vm = v; mid = m; } }
+  return { top: orderRow(pick(FULL ^ b ^ mid)), mid: orderRow(pick(mid)), bot: orderRow(pick(b)) };
 }
+export const greedy = quickArrange;
 export { CAT };

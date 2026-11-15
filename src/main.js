@@ -4,13 +4,15 @@ import { evalRow, catName, orderRow } from './engine/hands.js';
 import { detectSpecial } from './engine/special.js';
 import { scoreRound, duelFor, rowBonus } from './engine/scoring.js';
 import { solve } from './engine/arrange.js';
-import { ROWS, ROW_NAMES, SPECIAL_NAMES, ARRANGE_SECONDS } from './engine/rules.js';
+import { ROWS, ROW_NAMES, SPECIAL, SPECIAL_NAMES, ARRANGE_SECONDS } from './engine/rules.js';
 import { STAKES, minEntry, normalizeWallet, coinDelta, applyDelta, isBroke, START_COINS } from './engine/wallet.js';
 import { pickBots, clampAvatar, AVATAR_COUNT } from './engine/roster.js';
 import { cardEl, backEl } from './ui/cardview.js';
 import { sfx, setSound } from './ui/sfx.js';
 import { canShowInstall, installApp, onInstallChange } from './ui/install.js';
 import { fetchAccount, loginUrl, logout, installErrorLog } from './ui/account.js';
+import { GRACE_MS, ROOM_CODE } from './engine/room.js';
+import { clientId, api, onlineAvailable, RoomSession } from './net/online.js';
 
 const $ = (s, root = document) => root.querySelector(s);
 const app = $('#app');
@@ -96,6 +98,7 @@ function renderLobby() {
   sb.textContent = `Suara: ${settings.sound ? 'nyala' : 'mati'}`;
   sb.setAttribute('aria-pressed', String(settings.sound));
   $('#btnInstall').hidden = !canShowInstall();
+  $('#lbOnline').hidden = !onlineOn;
   renderAccount();
 }
 
@@ -237,28 +240,43 @@ function enterTable(stake, saved = null) {
   const mine = myAvatar();
   const unit = stake || 5;
   G = {
-    stake, gen: 0, round: null, fast: false,
+    mode: 'solo', stake, gen: 0, round: null, fast: false,
     seats: [
       { name: 'Kamu', avatar: mine, isMe: true },
       ...(saved ? saved.seats : pickBots(3, [mine], Math.random).map((b) => ({ ...b, coins: unit * (300 + Math.floor(Math.random() * 1700)) }))),
     ],
   };
   show('table');
+  $('#table').classList.remove('online');
   $('#tbInfo').innerHTML = stake ? `Meja <b>${stake}</b> koin / poin` : 'Meja <b>Latihan</b> · tanpa koin';
+  buildSeats();
+  renderCoins();
+  startRound(saved);
+}
+function buildSeats() {
   G.seats.forEach((s, i) => {
+    seatEl(i).className = `seat s${i}`;
     seatEl(i).innerHTML = `<div class="who"><div class="ava"><img src="${avatarSrc(s.avatar)}" alt="" draggable="false"></div>
       <div class="nm"><b>${esc(s.name)}</b><span class="coins"><i class="coin"></i> <span data-coins></span></span></div></div>
       <div class="handwrap"><div class="hand"><div class="hrow"></div><div class="hrow"></div><div class="hrow"></div></div><div class="cap"></div><div class="tag"></div></div>
       <div class="pts"></div>`;
   });
-  renderCoins();
-  startRound(saved);
 }
 function renderCoins() {
-  G.seats.forEach((s, i) => { $('[data-coins]', seatEl(i)).textContent = fmt(s.isMe ? wallet.coins : s.coins); });
+  G.seats.forEach((s, i) => {
+    // meja online tanpa koin: yang tampil total poin selama di meja itu
+    const text = G.mode === 'online' ? (s.empty ? '' : `Total ${signed(s.shownTotal ?? 0)}`) : fmt(s.isMe ? wallet.coins : s.coins);
+    $('[data-coins]', seatEl(i)).textContent = text;
+  });
 }
 function leaveTable() {
   if (G?.round) clearRoundTimers(G.round);
+  if (O) {
+    O.session?.close(true);
+    O = null;
+    save(ROOM_KEY, null);
+  }
+  $('#table').classList.remove('online');
   G = null;
   save(ROUND_KEY, null);
   $('#arrange').hidden = true;
@@ -314,7 +332,7 @@ const stale = (gen) => !G || G.gen !== gen;
  */
 function saveRound() {
   const R = G?.round;
-  if (!R || (R.phase !== 'arrange' && R.phase !== 'wait')) return;
+  if (!R || G.mode === 'online' || (R.phase !== 'arrange' && R.phase !== 'wait')) return; // meja online disimpan server
   save(ROUND_KEY, {
     v: 1, stake: G.stake, seed: R.seed, deadlineAt: R.deadlineAt, slots: A.slots,
     seats: G.seats.slice(1).map(({ name, avatar, coins }) => ({ name, avatar, coins })),
@@ -388,6 +406,11 @@ function botReady(i) {
 function renderOppCount() {
   const R = G?.round;
   if (!R) return;
+  if (G.mode === 'online') {
+    const others = O.view.seats.filter((s, i) => s && i !== O.view.seat);
+    $('#arOpp').textContent = `Lawan siap ${others.filter((s) => s.ready).length}/${others.length}`;
+    return;
+  }
   const n = R.players.slice(1).filter((p) => p.ready).length;
   $('#arOpp').textContent = `Lawan siap ${n}/3`;
 }
@@ -408,6 +431,22 @@ function onTick() {
 }
 function timeUp() {
   const R = G.round;
+  if (G.mode === 'online') {
+    // server yang menutup ronde; di sini cukup kirim susunan terakhir kalau sah (kalau tidak, server menyusunkan)
+    if (R.players[0].ready || R.timedOut) return;
+    R.timedOut = true;
+    if (commitMine(false)) {
+      sendSubmit();
+      afterMineReady();
+      toast('Waktu habis');
+    } else {
+      $('#arrange').hidden = true;
+      R.phase = 'wait';
+      R.players[0].ready = true;
+      $('#center').innerHTML = '<div class="banner">Waktu habis<small>Kartumu disusun otomatis</small></div>';
+    }
+    return;
+  }
   if (!R.players[0].ready) {
     const ok = commitMine(true);
     toast(ok === 'auto' ? 'Waktu habis — kartu disusun otomatis' : 'Waktu habis');
@@ -417,7 +456,7 @@ function timeUp() {
 }
 function checkAllReady() {
   const R = G?.round;
-  if (!R || (R.phase !== 'arrange' && R.phase !== 'wait')) return;
+  if (!R || G.mode === 'online' || (R.phase !== 'arrange' && R.phase !== 'wait')) return; // online: server yang membuka ronde
   if (R.players.every((p) => p.ready)) showdown();
 }
 
@@ -583,6 +622,7 @@ $('#btnReady').addEventListener('click', () => {
   if (!renderArrange(false)) { sfx('bad'); return; }
   commitMine(false);
   sfx('ready');
+  if (G.mode === 'online') sendSubmit();
   afterMineReady();
 });
 arBox.addEventListener('click', (e) => {
@@ -590,6 +630,7 @@ arBox.addEventListener('click', (e) => {
   const me = G.round.players[0];
   me.declared = true; me.ready = true;
   sfx('scoop');
+  if (G.mode === 'online') sendSubmit();
   afterMineReady();
 });
 
@@ -615,14 +656,14 @@ function afterMineReady() {
   R.phase = 'wait';
   renderHand(0, me.declared ? me.special.rows : me.rows, [true, true, true]);
   setCap(0, me.declared ? `${SPECIAL_NAMES[me.special.type]} +${me.special.pts}` : '', me.declared);
-  // lawan yang belum siap dipercepat supaya tidak lama menunggu
-  for (let i = 1; i < 4; i++) {
+  // lawan (bot) yang belum siap dipercepat supaya tidak lama menunggu
+  for (let i = 1; i < 4 && G.mode !== 'online'; i++) {
     if (R.players[i].ready) continue;
     clearTimeout(R.botTimers[i]);
     R.botTimers[i] = setTimeout(() => botReady(i), 500 + Math.random() * 1300);
   }
   const c = $('#center');
-  c.innerHTML = `<div class="waitbox"><div class="timer"><b></b></div><div class="status">Menunggu lawan…</div><button class="btn" id="btnRedo" type="button">Susun ulang</button></div>`;
+  c.innerHTML = `<div class="waitbox"><div class="timer"><b></b></div><div class="status">Menunggu lawan…</div>${R.timedOut ? '' : '<button class="btn" id="btnRedo" type="button">Susun ulang</button>'}</div>`;
   onTick();
   checkAllReady();
 }
@@ -630,6 +671,11 @@ $('#center').addEventListener('click', (e) => {
   if (!e.target.closest('#btnRedo')) return;
   const R = G?.round;
   if (!R || R.phase !== 'wait') return;
+  if (G.mode === 'online') {
+    if (R.timedOut) return;
+    R.pendingSubmit = false;
+    O.session?.send({ t: 'redo' });
+  }
   sfx('tap');
   renderHand(0, null);
   setCap(0, '');
@@ -743,6 +789,7 @@ async function showdown() {
   }
 
   res.net.forEach((n, i) => setPts(i, n));
+  if (G.mode === 'online') G.seats.forEach((s) => { s.shownTotal = s.total; });
   renderCoins();
   R.phase = 'result';
   showResult(res, deltas);
@@ -766,15 +813,19 @@ function showResult(res, deltas) {
   const sweepNote = res.sweep === 0 ? 'Kamu tembus keliling — semua poin ×4!' : res.sweep > 0 ? `${esc(G.seats[res.sweep].name)} tembus keliling.` : '';
   const coins = G.stake ? ` · <span class="${cls(deltas[0])}"><i class="coin"></i> ${deltas[0] === 0 ? '0' : signed(deltas[0])}</span>` : '';
   const others = [1, 2, 3].map((i) => `<span>${esc(G.seats[i].name)} <b class="${cls(res.net[i])}">${res.net[i] === 0 ? '0' : signed(res.net[i])}</b></span>`).join('');
+  const online = G.mode === 'online';
+  const totals = online ? `<p class="rs-total">Total di meja ini: ${G.seats.map((s) => `${esc(s.name)} <b>${signed(s.total)}</b>`).join(' · ')}</p>` : '';
+  const again = online ? '<button class="btn primary" id="btnAgain" type="button"></button>' : '<button class="btn primary" id="btnAgain" type="button">Main lagi</button>';
   const el = $('#result');
   el.classList.remove('peek');
   el.innerHTML = `<div class="rs-panel"><div class="rs-head"><h2 class="${net > 0 ? 'win' : net < 0 ? 'lose' : ''}">${net > 0 ? 'Menang' : net < 0 ? 'Kalah' : 'Seri'}</h2>
       <div class="rs-sum"><span class="${cls(net)}">${net === 0 ? '0' : signed(net)} poin</span>${coins}</div></div>
     <table class="rs-table"><thead><tr><th>Lawan</th><th>Atas</th><th>Tengah</th><th>Bawah</th><th>Tembus</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>
     ${sweepNote ? `<p class="rs-note">${sweepNote}</p>` : ''}
-    <div class="rs-all">${others}</div>
-    <div class="rs-btns"><button class="btn" id="btnExit" type="button">Keluar</button><button class="btn" id="btnPeek" type="button">Lihat meja</button><button class="btn primary" id="btnAgain" type="button">Main lagi</button></div></div>`;
+    <div class="rs-all">${others}</div>${totals}
+    <div class="rs-btns"><button class="btn" id="btnExit" type="button">Keluar</button><button class="btn" id="btnPeek" type="button">Lihat meja</button>${again}</div></div>`;
   el.hidden = false;
+  if (online) renderOnlineResultButtons();
 }
 $('#result').addEventListener('click', (e) => {
   if (e.target.closest('#btnExit')) { sfx('tap'); leaveTable(); return; }
@@ -784,6 +835,7 @@ $('#result').addEventListener('click', (e) => {
     return;
   }
   if (e.target.closest('#btnAgain')) {
+    if (G.mode === 'online') { sfx('tap'); O.session?.send({ t: 'next' }); return; }
     if (G.stake && wallet.coins < minEntry(G.stake)) {
       toast(`Koin tidak cukup untuk Meja ${G.stake} (minimal ${fmt(minEntry(G.stake))})`, 3200);
       leaveTable();
@@ -801,6 +853,12 @@ $('#center').addEventListener('click', (e) => {
 
 $('#btnLeave').addEventListener('click', async () => {
   const R = G?.round;
+  if (G?.mode === 'online') {
+    const playing = O?.view && O.view.status !== 'lobby';
+    if (playing && !(await ask('Keluar dari meja?', 'Kursimu akan dimainkan otomatis sampai permainan selesai.', 'Keluar', 'Lanjut main'))) return;
+    if (G?.mode === 'online') leaveTable();
+    return;
+  }
   if (!R) return leaveTable();
   if (R.phase === 'arrange' || R.phase === 'wait') {
     const yes = await ask('Keluar dari meja?', G.stake
@@ -818,6 +876,254 @@ $('#btnLeave').addEventListener('click', async () => {
   }
   leaveTable();
 });
+
+// ---------- meja online (bareng teman) ----------
+// Server (worker/room.js) yang membagi kartu & menghitung; di sini hanya menampilkan viewFor() dari server.
+// Kursi server diputar supaya kursi sendiri selalu di bawah (indeks tampilan 0).
+const ROOM_KEY = 'capsa-room', NAME_KEY = 'capsa-name';
+let O = null; // { session, code, seat, view, shown } — shown = nomor ronde yang hasilnya sudah ditampilkan
+let onlineOn = false;
+const toSeat = (d) => (d + O.seat) % 4;
+const myOnlineName = () => (account.state === 'in' ? account.name : load(NAME_KEY));
+
+/** Dialog isian satu baris. -> teks atau null kalau dibatalkan. */
+function askText(title, body, { value = '', cls: fieldCls = '', max = 16, okLabel = 'Lanjut' } = {}) {
+  return new Promise((res) => {
+    const m = modal(`<h2>${esc(title)}</h2><p>${esc(body)}</p>
+      <input class="field ${fieldCls}" id="fldText" type="text" maxlength="${max}" autocomplete="off" autocapitalize="${fieldCls ? 'characters' : 'words'}" spellcheck="false" value="${esc(value)}">
+      <div class="rs-btns"><button class="btn" data-a="no" type="button">Batal</button><button class="btn primary" data-a="yes" type="button">${esc(okLabel)}</button></div>`);
+    const fld = $('#fldText', m);
+    const done = (ok) => { m.onclick = null; m.onkeydown = null; closeModal(); res(ok ? fld.value : null); };
+    fld.focus();
+    fld.select();
+    m.onkeydown = (e) => { if (e.key === 'Enter') done(true); };
+    m.onclick = (e) => {
+      const a = e.target.closest('[data-a]')?.dataset.a;
+      if (a || e.target === m) done(a === 'yes');
+    };
+  });
+}
+async function ensureName() {
+  const known = myOnlineName();
+  if (known) return known;
+  const typed = await askText('Nama kamu', 'Nama ini yang dilihat teman di meja.', { value: `Tamu ${100 + Math.floor(Math.random() * 900)}` });
+  const name = (typed || '').replace(/\s+/g, ' ').trim().slice(0, 16);
+  if (!name) return null;
+  save(NAME_KEY, name);
+  return name;
+}
+
+async function createOnline() {
+  if (!load(TUT_KEY)) return showTutorial(createOnline);
+  const name = await ensureName();
+  if (!name) return;
+  try {
+    const { code } = await api('/rooms', { method: 'POST', body: { id: clientId(), name, avatar: myAvatar() } });
+    connectOnline(code, name);
+  } catch (e) {
+    toast(e.message || 'Gagal membuat meja');
+  }
+}
+async function joinOnline(raw) {
+  const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!ROOM_CODE.test(code)) return toast('Kode meja terdiri dari 5 huruf/angka');
+  let info;
+  try { info = await api(`/rooms/${code}?id=${clientId()}`); } catch (e) { return toast(e.message || 'Server tidak menjawab'); }
+  if (info.status === 'none') return toast('Meja tidak ditemukan');
+  if (!info.mine && info.status !== 'lobby') return toast('Permainan di meja itu sudah mulai');
+  if (!info.mine && !info.free) return toast('Meja penuh');
+  if (!load(TUT_KEY)) return showTutorial(() => joinOnline(code));
+  const name = await ensureName();
+  if (name) connectOnline(code, name);
+}
+function connectOnline(code, name) {
+  if (G) return;
+  O = { code, seat: 0, view: null, shown: 0, session: null };
+  save(ROOM_KEY, code);
+  O.session = new RoomSession(code, { id: clientId(), name, avatar: myAvatar() }, {
+    onState: onOnlineState,
+    onError: (msg) => { sfx('bad'); toast(msg, 3000); if (G?.round) G.round.pendingSubmit = false; if (O?.view) onOnlineState(O.view, 0); },
+    onStatus: (st) => toast(st === 'reconnecting' ? 'Koneksi putus — menyambung lagi…' : 'Tersambung lagi', st === 'reconnecting' ? 8000 : 1500),
+    onEnd: (msg) => { toast(msg, 3500); if (O) { O.session = null; leaveTable(); } },
+  });
+}
+function sendSubmit() {
+  const R = G.round, me = R.players[0];
+  R.pendingSubmit = true;
+  O.session?.send(me.declared ? { t: 'submit', special: true } : { t: 'submit', rows: me.rows });
+}
+
+function onOnlineState(v, serverNow) {
+  if (!O) return;
+  O.view = v;
+  O.seat = Math.max(0, v.seat);
+  if (!G || G.mode !== 'online') {
+    G = { mode: 'online', stake: 0, gen: 0, round: null, fast: false, seats: [0, 1, 2, 3].map((d) => ({ name: '', avatar: 0, isMe: d === 0 })) };
+    closeModal();
+    show('table');
+    $('#table').classList.add('online');
+    $('#tbInfo').innerHTML = `Meja <b>${esc(O.code)}</b> · bareng teman`;
+    buildSeats();
+    $('#arrange').hidden = true;
+    $('#result').hidden = true;
+    $('#center').replaceChildren();
+  }
+  syncOnlineSeats(v);
+  if (v.status === 'lobby') return renderWaitroom(v);
+  if (v.status === 'arrange') {
+    if (G.round?.no !== v.round) return beginOnlineRound(v, serverNow);
+    const R = G.round;
+    if (v.mine) R.pendingSubmit = false;
+    else if (R.phase === 'wait' && !R.pendingSubmit && !R.timedOut) {
+      // server tidak memegang susunan kita (ditolak / dibatalkan): buka lagi layar susun
+      renderHand(0, null);
+      setCap(0, '');
+      openArrange(false);
+    }
+    renderOppCount();
+    return;
+  }
+  if (v.status === 'result' && v.last) {
+    if (O.shown !== v.last.round) {
+      O.shown = v.last.round;
+      playOnlineResult(v);
+    } else if (G.round?.phase === 'result') renderOnlineResultButtons();
+  }
+}
+
+/** Nama, avatar, total poin, dan tanda status tiap kursi dari tampilan server. */
+function syncOnlineSeats(v) {
+  const pending = v.status === 'result' && v.last && G.round?.phase !== 'result'; // hasil ronde belum selesai ditampilkan
+  for (let d = 0; d < 4; d++) {
+    const k = toSeat(d), s = v.seats[k], el = seatEl(d);
+    const total = v.totals[k];
+    G.seats[d] = s
+      ? { name: d === 0 ? 'Kamu' : s.name, avatar: s.avatar, isMe: d === 0, total, shownTotal: pending ? total - v.last.net[k] : total }
+      : { name: 'Kosong', avatar: 0, empty: true, total: 0, shownTotal: 0 };
+    el.classList.toggle('empty', !s);
+    el.classList.toggle('off', !!s && !s.bot && (!s.online || s.left));
+    $('.nm b', el).textContent = (s && k === v.host && v.status === 'lobby' ? '★ ' : '') + G.seats[d].name; // ★ = pembuat meja
+    const img = $('.ava img', el);
+    if (s && img.getAttribute('src') !== avatarSrc(s.avatar)) img.src = avatarSrc(s.avatar);
+    if (v.status === 'lobby') {
+      el.querySelectorAll('.hrow').forEach((r) => r.replaceChildren());
+      setCap(d, '');
+      setTag(d, '');
+      setPts(d, null);
+    } else if (v.status === 'arrange' && d !== 0) {
+      setTag(d, s.ready ? 'Siap' : s.left ? 'Otomatis' : !s.online ? 'Putus' : 'Menyusun…', !s.ready);
+    }
+  }
+  renderCoins();
+}
+
+function renderWaitroom(v) {
+  if (G.round) { clearRoundTimers(G.round); G.round = null; }
+  const host = v.host === v.seat;
+  const n = v.seats.filter(Boolean).length;
+  $('#center').innerHTML = `<div class="waitroom"><small>Kode meja</small><div class="code">${esc(O.code)}</div>
+    <p>${n} dari 4 kursi terisi${n < 4 ? ' · kursi kosong diisi bot' : ''}</p>
+    <div class="rs-btns"><button class="btn" id="btnShare" type="button">Bagikan link</button>${host ? '<button class="btn primary" id="btnStartOnline" type="button">Mulai</button>' : ''}</div>
+    ${host ? '' : '<p>Menunggu pembuat meja memulai…</p>'}</div>`;
+}
+async function shareRoom() {
+  const url = `${location.origin}${location.pathname}#room=${O.code}`;
+  const text = `Main Capsa Kung2 bareng yuk! Kode meja: ${O.code}`;
+  try {
+    if (navigator.share) { await navigator.share({ title: 'Capsa Kung2', text, url }); return; }
+  } catch (e) {
+    if (e?.name === 'AbortError') return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    toast('Link meja disalin');
+  } catch {
+    toast(`Bagikan kode meja ini: ${O.code}`, 4000);
+  }
+}
+$('#center').addEventListener('click', (e) => {
+  if (!O) return;
+  if (e.target.closest('#btnShare')) { sfx('tap'); shareRoom(); }
+  if (e.target.closest('#btnStartOnline')) { sfx('tap'); O.session?.send({ t: 'start' }); }
+});
+
+function beginOnlineRound(v, serverNow) {
+  ++G.gen; // hentikan animasi hasil ronde sebelumnya kalau masih jalan
+  G.fast = false;
+  if (G.round) clearRoundTimers(G.round);
+  const R = (G.round = {
+    no: v.round, phase: 'arrange', botTimers: [], tick: 0, result: null, pendingSubmit: false, timedOut: false,
+    // jam di layar berhenti GRACE_MS sebelum batas server, supaya kiriman terakhir masih sempat sampai
+    deadline: performance.now() + (v.deadline - serverNow) - GRACE_MS,
+    players: [0, 1, 2, 3].map((d) => ({ cards: d === 0 ? v.hand : null, special: d === 0 ? detectSpecial(v.hand) : null, rows: null, declared: false, ready: false })),
+  });
+  $('#result').hidden = true;
+  $('#arrange').hidden = true;
+  $('#center').replaceChildren();
+  markRow(-1);
+  for (let i = 0; i < 4; i++) { renderHand(i, null, undefined, 'dealt'); setCap(i, ''); setPts(i, null); }
+  sfx('deal');
+  R.tick = setInterval(onTick, 200);
+  const me = R.players[0];
+  if (v.mine) {
+    // masuk lagi setelah sempat mengirim susunan: langsung ke layar tunggu
+    if (v.mine.special) me.declared = true;
+    else { me.rows = v.mine.rows; A.slots = flat(v.mine.rows); }
+    me.ready = true;
+    A.hints = null; A.hintIdx = -1; A.sel = -1; A.note = '';
+    afterMineReady();
+  } else openArrange(true);
+  renderOppCount();
+  onTick();
+}
+
+function playOnlineResult(v) {
+  if (G.round?.no !== v.last.round) {
+    // masuk saat layar hasil (tidak ikut menyusun ronde ini)
+    if (G.round) clearRoundTimers(G.round);
+    ++G.gen;
+    G.round = { no: v.last.round, phase: 'wait', botTimers: [], tick: 0, result: null };
+  }
+  G.round.players = [0, 1, 2, 3].map((d) => {
+    const p = v.last.shown[toSeat(d)];
+    return p.special
+      ? { declared: true, special: { type: p.special, pts: SPECIAL[p.special], rows: p.rows }, rows: null, ready: true }
+      : { declared: false, special: null, rows: p.rows, ready: true };
+  });
+  showdown(); // poin dihitung ulang di sini dari kartu yang dibuka server (aturannya sama)
+}
+function renderOnlineResultButtons() {
+  const b = $('#btnAgain');
+  if (!b || !O?.view) return;
+  const host = O.view.host === O.view.seat;
+  b.disabled = !host;
+  b.textContent = host ? 'Ronde berikutnya' : 'Menunggu pembuat meja…';
+}
+
+$('#btnCreate').addEventListener('click', () => { sfx('tap'); createOnline(); });
+$('#btnJoin').addEventListener('click', async () => {
+  sfx('tap');
+  const code = await askText('Gabung meja', 'Masukkan kode meja dari temanmu.', { cls: 'code', max: 5, okLabel: 'Gabung' });
+  if (code) joinOnline(code);
+});
+
+/** Saat boot: buka link meja (#room=KODE), atau kembali ke meja online yang ditinggal. */
+async function resumeOnline() {
+  const fromLink = (location.hash.match(/^#room=([A-Za-z0-9]{5})$/) || [])[1];
+  if (fromLink) history.replaceState(null, '', location.pathname + location.search);
+  if (G) {
+    if (fromLink) toast('Selesaikan ronde ini dulu, lalu buka lagi link mejanya', 4000);
+    return;
+  }
+  if (fromLink) return joinOnline(fromLink);
+  const code = load(ROOM_KEY);
+  if (typeof code !== 'string' || !ROOM_CODE.test(code)) return;
+  try {
+    const info = await api(`/rooms/${code}?id=${clientId()}`);
+    if (info.mine && !G) connectOnline(code, myOnlineName() || 'Pemain');
+    else save(ROOM_KEY, null);
+  } catch { /* server tidak menjawab: coba lagi saat dibuka berikutnya */ }
+}
 
 // ---------- PWA: service worker + cek versi baru ----------
 let bootVersion = null;
@@ -857,3 +1163,8 @@ installErrorLog(() => bootVersion);
   const sv = loadRound();
   if (sv) enterTable(sv.stake, sv);
 }
+onlineAvailable().then((ok) => {
+  onlineOn = ok;
+  if (!G) $('#lbOnline').hidden = !ok;
+  if (ok) resumeOnline();
+});

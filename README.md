@@ -48,9 +48,9 @@ npm run sim    # 2000 ronde AI vs AI: cek zero-sum, sebaran poin, frekuensi temb
 
 ## Deploy
 
-Belum di-deploy. `wrangler.jsonc` + `npm run build` sudah disiapkan untuk pola yang sama dengan games-mahjong0hk
-(Cloudflare → Workers & Pages → Import a repository; build `npm run build`, deploy `npx wrangler deploy`, branch `main`),
-alamatnya nanti `sylvaniaharco.com/games/capsa/`.
+Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file statis saja). Repo ini tersambung ke Cloudflare
+(Workers & Pages → Import a repository): build `npm run build`, deploy `npx wrangler deploy`, production branch `main`.
+**Merge/push ke `main` = langsung live.** Route `sylvaniaharco.com/games/capsa*` diatur di `wrangler.jsonc`.
 
 ## Struktur
 

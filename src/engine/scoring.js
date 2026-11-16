@@ -1,9 +1,12 @@
-// Hitung poin satu ronde (4 pemain). Murni.
+// Hitung poin satu ronde (semua pasangan pemain diadu). Murni.
 // Tiap pemain: { rows: { top:[3], mid:[5], bot:[5] } } atau { special: { type, pts } }.
 import { evalRow, catOf } from './hands.js';
 import { BONUS, ROWS, SCOOP_MULT, SWEEP_MULT } from './rules.js';
 
 export const rowBonus = (row, value) => BONUS[row][catOf(value)] || 0;
+
+/** Aturan hitung capsa 13 kartu. Capsa 6 kartu memberi aturannya sendiri (sixRules di six.js), bentuknya sama. */
+export const CAPSA13 = { evalRow, rowBonus, scoopMult: SCOOP_MULT, sweepMult: SWEEP_MULT, sweepMaxPlayers: 4 };
 
 /**
  * -> {
@@ -14,9 +17,9 @@ export const rowBonus = (row, value) => BONUS[row][catOf(value)] || 0;
  *   values: [[nilai atas,tengah,bawah] | null]
  * }
  */
-export function scoreRound(players) {
+export function scoreRound(players, rules = CAPSA13) {
   const n = players.length;
-  const values = players.map((p) => (p.special ? null : ROWS.map((r) => evalRow(p.rows[r]))));
+  const values = players.map((p) => (p.special ? null : ROWS.map((r) => rules.evalRow(p.rows[r]))));
   const duels = [];
   const scoops = Array.from({ length: n }, () => 0);
 
@@ -33,23 +36,23 @@ export function scoreRound(players) {
         let wins = 0, losses = 0;
         ROWS.forEach((row, i) => {
           const va = values[a][i], vb = values[b][i];
-          if (va > vb) { d.rows[i] = 1 + rowBonus(row, va); wins++; }
-          else if (vb > va) { d.rows[i] = -(1 + rowBonus(row, vb)); losses++; }
+          if (va > vb) { d.rows[i] = 1 + rules.rowBonus(row, va); wins++; }
+          else if (vb > va) { d.rows[i] = -(1 + rules.rowBonus(row, vb)); losses++; }
         });
         d.base = d.rows[0] + d.rows[1] + d.rows[2];
         if (wins === 3) { d.scoop = 1; scoops[a]++; }
         if (losses === 3) { d.scoop = -1; scoops[b]++; }
-        if (d.scoop) d.mult = SCOOP_MULT;
+        if (d.scoop) d.mult = rules.scoopMult;
       }
       duels.push(d);
     }
   }
 
-  const sweep = scoops.findIndex((s) => s === n - 1 && n > 2);
+  const sweep = n > 2 && n <= rules.sweepMaxPlayers ? scoops.findIndex((s) => s === n - 1) : -1;
   const net = new Array(n).fill(0);
   const rowTotals = Array.from({ length: n }, () => [0, 0, 0]);
   for (const d of duels) {
-    if (sweep >= 0 && ((d.a === sweep && d.scoop === 1) || (d.b === sweep && d.scoop === -1))) d.mult *= SWEEP_MULT;
+    if (sweep >= 0 && ((d.a === sweep && d.scoop === 1) || (d.b === sweep && d.scoop === -1))) d.mult *= rules.sweepMult;
     d.total = d.base * d.mult;
     net[d.a] += d.total;
     net[d.b] -= d.total;

@@ -185,7 +185,16 @@ button { font: inherit; color: inherit; }
 .tbl.locked { opacity: .55; cursor: not-allowed; }
 .tbl.locked small { color: #ffd9a8; }
 
-.lb-six { margin-top: 1.2em; }
+.mode-pick { display: grid; grid-template-columns: 1fr 1fr; gap: .6em; margin-bottom: 1.1em; }
+.mode-b {
+  display: flex; flex-direction: column; align-items: center; gap: .15em; padding: .7em .6em; border-radius: 16px; cursor: pointer;
+  border: 1.5px solid var(--line); background: rgba(0, 0, 0, .3); color: var(--text); font: inherit; text-align: center;
+}
+.mode-b b { font-size: 1.15em; font-weight: 900; }
+.mode-b small { font-size: .8em; color: var(--muted); }
+.mode-b.on { border-color: var(--accent); background: linear-gradient(160deg, rgba(255, 207, 74, .25), rgba(11, 69, 55, .8)); box-shadow: 0 0 0 1px var(--accent) inset; }
+.mode-b.on b { color: var(--accent); }
+.mode-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .su-order { white-space: nowrap; }
 .su-i { display: inline-block; width: 1em; height: 1em; vertical-align: -.12em; fill: #f3f6f4; }
 .su-i.red { fill: #ff6b6b; }

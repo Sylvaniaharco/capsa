@@ -42,17 +42,17 @@
         <p id="lbNote" class="lb-note" hidden></p>
       </div>
       <div class="lb-tables">
+        <div id="modePick" class="mode-pick" role="group" aria-label="Pilih mode">
+          <button class="mode-b" data-mode="13" type="button"><b>13 Kartu</b><small>susun 3-5-5 · 4 pemain</small></button>
+          <button class="mode-b" data-mode="6" type="button"><b>6 Kartu</b><small>susun 1-2-3 · 3–8 pemain</small></button>
+        </div>
+        <div id="m13">
         <div id="lbRanked" class="lb-ranked" hidden>
           <h2>Ranked <small>online · koin akun</small></h2>
           <div id="rankedTables" class="tables t3"></div>
         </div>
         <h2>Lawan AI <small id="aiCoinsTag">koin di HP ini</small></h2>
         <div id="tables" class="tables"></div>
-        <div class="lb-six">
-          <h2>Capsa 6 kartu <small>susun 1-2-3 · lawan AI</small></h2>
-          <div class="six-pick"><span>Pemain</span><div id="sixPlayers" class="seg" role="group" aria-label="Jumlah pemain"></div><small id="sixInfo"></small></div>
-          <div id="sixTables" class="tables"></div>
-        </div>
         <div id="lbOnline" class="lb-online" hidden>
           <h2>Main bareng teman</h2>
           <div class="lb-row2">
@@ -60,6 +60,13 @@
             <button id="btnJoin" class="btn" type="button">Gabung pakai kode</button>
           </div>
           <p>Online, tanpa koin (cuma poin). Kursi kosong diisi bot.</p>
+        </div>
+        </div>
+        <div id="m6" hidden>
+          <h2>Jumlah pemain</h2>
+          <div class="six-pick"><div id="sixPlayers" class="seg" role="group" aria-label="Jumlah pemain"></div><small id="sixInfo"></small></div>
+          <h2>Lawan AI <small>koin di HP ini</small></h2>
+          <div id="sixTables" class="tables"></div>
         </div>
       </div>
     </section>

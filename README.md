@@ -33,7 +33,7 @@ Hal yang diputuskan saat membuat (ubah di `src/engine/rules.js` kalau maunya lai
 
 ## Capsa 6 kartu (lawan AI, 3–8 pemain)
 
-Pilih jumlah pemain (3–8) di lobi, lalu mejanya (Latihan / 5 / 10 / 20, koin sama dengan meja lawan AI). Tiap pemain dapat **6 kartu**
+Di lobi pilih mode **6 Kartu** (tombol 13 Kartu / 6 Kartu di atas daftar meja), lalu jumlah pemain (3–8) dan mejanya (Latihan / 5 / 10 / 20, koin sama dengan meja lawan AI). Tiap pemain dapat **6 kartu**
 dan menyusunnya jadi **Atas 1**, **Tengah 2**, **Bawah 3** (Bawah ≥ Tengah ≥ Atas). Waktu susun 30 detik.
 
 Kartu diambil dari As ke bawah sebanyak `ceil(6 × pemain / 4)` nilai; sisanya tidak dibagi (tidak ketahuan):

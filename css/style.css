@@ -469,6 +469,23 @@ button { font: inherit; color: inherit; }
   animation: bannerIn .2s ease-out both;
 }
 
+/* ---------- baris bonus bersinar (pair As tengah, tris / straight flush / royal bawah, dst.) ---------- */
+.hrow.shine, .arow.shine .acards { animation: shineGlow 1.1s ease-in-out infinite alternate; }
+.hrow.shine .card, .arow.shine .card { box-shadow: inset 0 0 0 1.5px #e9b730, 0 2px 5px rgba(0, 0, 0, .4); }
+.hrow.shine .card::after, .arow.shine .card::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, .8) 47%, rgba(255, 236, 160, .45) 53%, transparent 68%);
+  translate: -130% 0; animation: shineSweep 2.4s ease-in-out infinite;
+}
+.arow.shine .alabel .hn { color: var(--accent); }
+@keyframes shineGlow {
+  from { filter: drop-shadow(0 0 3px rgba(255, 207, 74, .6)); }
+  to { filter: drop-shadow(0 0 9px rgba(255, 207, 74, 1)) drop-shadow(0 0 2px #fff3c4); }
+}
+@keyframes shineSweep { 0% { translate: -130% 0; } 55%, 100% { translate: 130% 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   .card.flip, .card.dealt, .banner, .result, .toast, .pts.pop, .timer.low, .bigwin, .bw-rays, .bw-box, .bw-title { animation: none !important; }
+  .hrow.shine, .arow.shine .acards { animation: none; filter: drop-shadow(0 0 7px rgba(255, 207, 74, .95)); }
+  .hrow.shine .card::after, .arow.shine .card::after { display: none; }
 }

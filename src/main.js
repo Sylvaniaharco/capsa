@@ -44,7 +44,8 @@ const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch 
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* mode privat: jalan tanpa simpanan */ } };
 
 let wallet = normalizeWallet(load(WALLET_KEY), Date.now());
-const settings = { sound: true, sixN: 4, ...(load(SET_KEY) || {}) };
+const settings = { sound: true, sixN: 4, mode: '13', ...(load(SET_KEY) || {}) };
+if (settings.mode !== '6') settings.mode = '13';
 if (!validPlayers(settings.sixN)) settings.sixN = 4;
 setSound(settings.sound);
 const saveWallet = () => save(WALLET_KEY, wallet);
@@ -119,6 +120,15 @@ function renderLobby() {
       <span class="chip" style="--c:${t.color}"><i>${t.chip}</i></span><span><b>${t.name}</b><small>${need || `min ${fmt(minEntry(t.stake))}`}</small></span></button>`;
   }).join('');
   $('#aiCoinsTag').hidden = $('#lbRanked').hidden;
+  // pilih mode dulu (13 / 6 kartu), baru mejanya
+  const six = settings.mode === '6';
+  $('#m13').hidden = six;
+  $('#m6').hidden = !six;
+  for (const b of document.querySelectorAll('#modePick .mode-b')) {
+    const on = b.dataset.mode === settings.mode;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  }
   // Capsa 6 kartu: pilih jumlah pemain, lalu meja (koin sama dengan meja lawan AI)
   $('#sixPlayers').innerHTML = Array.from({ length: SIX.maxPlayers - SIX.minPlayers + 1 }, (_, k) => {
     const n = SIX.minPlayers + k;
@@ -193,6 +203,14 @@ $('#tables').addEventListener('click', (e) => {
   sfx('tap');
   if (!load(TUT_KEY)) return showTutorial(() => enterTable(stake));
   enterTable(stake);
+});
+$('#modePick').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mode]');
+  if (!b || b.dataset.mode === settings.mode) return;
+  settings.mode = b.dataset.mode;
+  save(SET_KEY, settings);
+  sfx('tap');
+  renderLobby();
 });
 $('#sixPlayers').addEventListener('click', (e) => {
   const b = e.target.closest('[data-n]');

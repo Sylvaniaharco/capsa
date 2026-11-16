@@ -93,6 +93,7 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   `scoreRound(players, sixRules(n))` — `scoreRound` menerima aturan (default `CAPSA13`). Tabel AI (`sixStrength`) dibuat saat jalan,
   bukan lewat `calibrate`. Di `src/main.js` semua bagian meja memakai `G.v` (jenis permainan: `V13` atau `sixVariant(n)`), jumlah kursi
   = `G.seats.length`; kursi dibuat `buildSeats()` (bukan di HTML). Belum ada versi online/Ranked.
+  Lobi: pilih mode dulu (`#modePick`, 13 / 6 kartu, diingat di `settings.mode`); `#m13` = Ranked + lawan AI + bareng teman, `#m6` = jumlah pemain + meja.
 - Teks UI bahasa Indonesia. Ikon lambang kartu pakai SVG `<symbol>` di `index.html` (bukan karakter ♠♥, yang di Android bisa jadi emoji).
 
 ## PWA

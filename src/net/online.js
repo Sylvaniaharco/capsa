@@ -28,8 +28,14 @@ export async function api(path, opts = {}) {
 }
 
 /** Meja online hanya ada kalau game disajikan oleh Worker (bukan server statis lokal / pratinjau). */
-export async function onlineAvailable() {
-  try { return (await api('/config')).online === true; } catch { return false; }
+/** -> { online, ranked }: meja online ada? Ranked (koin akun) tersedia? */
+export async function onlineConfig() {
+  try {
+    const c = await api('/config');
+    return { online: c.online === true, ranked: c.ranked === true };
+  } catch {
+    return { online: false, ranked: false };
+  }
 }
 
 const MAX_RETRY = 8;

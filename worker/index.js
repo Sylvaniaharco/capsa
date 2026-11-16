@@ -3,10 +3,12 @@
 // Meja bareng teman TANPA koin, jadi tidak perlu login: pemain dikenali dari id acak buatan HP-nya (kunci kursinya) + nama.
 // Fitur yang memakai koin akun (Ranked) WAJIB memverifikasi akun lewat server Mahjong — jangan memakai id dari klien untuk itu.
 import { CapsaRoom } from './room.js';
+import { CapsaLobby } from './lobby.js';
 import { validId, cleanName, ROOM_CODE } from '../src/engine/room.js';
 import { clampAvatar } from '../src/engine/roster.js';
+import { STAKES, minEntry } from '../src/engine/wallet.js';
 
-export { CapsaRoom };
+export { CapsaRoom, CapsaLobby };
 
 const BASE = '/games/capsa';
 const API = BASE + '/api';
@@ -35,7 +37,31 @@ async function handleApi(req, env, url) {
   const path = url.pathname.slice(API.length);
   if (badOrigin(req, url)) return json({ error: 'Origin tidak diizinkan' }, 403);
 
-  if (path === '/config') return json({ online: true });
+  if (path === '/config') return json({ online: true, ranked: !!env.MAHJONG });
+
+  // ---------- Ranked (koin akun) ----------
+  // Klien membawa tiket sekali pakai dari server akun (Mahjong); di sini tiket ditukar lewat service binding, jadi id akun
+  // dan saldo datang dari server akun, bukan dari klien. Balasannya kode meja + kunci kursi untuk menyambung ke meja.
+  if (path === '/ranked/join' && req.method === 'POST') {
+    if (!env.MAHJONG) return json({ error: 'Ranked belum tersedia' }, 503);
+    let b = {};
+    try { b = JSON.parse((await req.text()).slice(0, 500)); } catch { /* ditolak di bawah */ }
+    const stake = Number(b.stake);
+    if (!STAKES.includes(stake)) return json({ error: 'Meja tidak dikenal' }, 400);
+    let user = null;
+    try {
+      user = await env.MAHJONG.redeem(b.ticket);
+    } catch (e) {
+      console.error('redeem gagal', String(e?.message || e));
+      return json({ error: 'Server akun tidak menjawab, coba lagi' }, 503);
+    }
+    if (!user) return json({ error: 'Login tidak dikenali. Masuk lagi dengan Google.' }, 401);
+    if (!(user.coins >= minEntry(stake))) return json({ error: `Meja ${stake} butuh saldo minimal ${minEntry(stake)} koin` }, 403);
+    const lobby = env.LOBBY.get(env.LOBBY.idFromName('main'));
+    const res = await lobby.assign(stake, { userId: user.id, name: cleanName(user.name), avatar: clampAvatar(b.avatar) ?? 0, coins: user.coins });
+    if (!res.ok) return json({ error: res.error }, 409);
+    return json({ code: res.code, key: res.key });
+  }
 
   if (path === '/rooms' && req.method === 'POST') {
     let b = {};

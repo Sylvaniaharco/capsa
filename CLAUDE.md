@@ -1,6 +1,6 @@
 # capsa — "Capsa Kung2"
 
-Capsa susun 13 kartu di browser: main sendiri vs 3 AI (meja koin 5/10/20 per poin) atau online bareng teman (tanpa koin). Saudara dari games-mahjong0hk
+Capsa susun 13 kartu di browser: main sendiri vs 3 AI, online bareng teman (tanpa koin), atau Ranked online (koin akun, meja 5/10/20). Saudara dari games-mahjong0hk
 ("Mahjong Kung2"). Live di https://sylvaniaharco.com/games/capsa/. README menjelaskan aturan & keputusan aturan.
 
 ## Cara kerja dengan Teddy (pemilik)
@@ -15,7 +15,9 @@ Capsa susun 13 kartu di browser: main sendiri vs 3 AI (meja koin 5/10/20 per poi
 
 - Frontend: HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler, tanpa dependensi npm.
 - Backend: Cloudflare Worker `capsa` (`worker/index.js`, API di `/games/capsa/api/*`) + Durable Object `CapsaRoom` (`worker/room.js`,
-  satu per meja online, SQLite bawaan). Akun & koin memakai server Mahjong (lihat "Aturan kode").
+  satu per meja online, SQLite bawaan) dan `CapsaLobby` (`worker/lobby.js`, satu global: pencari meja Ranked).
+  Akun & koin ada di Worker Mahjong; Ranked memanggilnya lewat service binding `MAHJONG` → entrypoint `CapsaGate` (lihat "Aturan kode").
+  Deploy Capsa gagal kalau Worker Mahjong belum punya `CapsaGate`: perubahan di kedua repo → merge Mahjong dulu, tunggu deploy-nya, baru Capsa.
   Migrasi DO ada di `wrangler.jsonc`: tambah class DO baru = tambah tag migrasi baru, jangan ubah yang lama.
 - `npm run build` menyalin `index.html`, `manifest.webmanifest`, `css`, `src`, `avatars`, `icons` ke `dist/games/capsa/`, lalu mengisi
   `sw.js` (daftar precache + versi dari hash isi) dan `version.json`. File/folder statis baru → daftarkan di `scripts/build.mjs`.
@@ -33,7 +35,8 @@ npm test                 # node --test test/*.test.js
 npm run sim              # simulasi AI vs AI (zero-sum, sebaran poin)
 npm run calibrate        # bikin ulang src/engine/strength-data.js (±4 menit)
 npm run dev              # static server :8080 (tanpa meja online & akun)
-npm run dev:online       # build + wrangler dev :8787 (meja online jalan; buka /games/capsa/)
+npm run dev:online       # build + wrangler dev :8787 (meja teman jalan; buka /games/capsa/). Ranked butuh Worker Mahjong juga jalan
+                         # (wrangler dev di repo games-mahjong0hk, DEV_LOGIN=1) + proxy satu origin untuk kedua port.
 ```
 
 Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
@@ -50,10 +53,18 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   dashboard admin Mahjong). Login: `/games/mahjonghk/api/auth/google?next=capsa` → kembali ke `/games/capsa/?login=ok`. Tamu Mahjong
   dihitung belum masuk. Fitur ini hanya aktif kalau game dibuka dari `/games/capsa/`; di tempat lain state-nya `off` dan game jalan biasa.
   Kontrak API-nya ada di repo games-mahjong0hk (`worker/index.js`, `worker/next.js`) — perubahan di sana bisa merusak sini.
-- Ada **dua saldo** untuk sementara: koin akun (server, dipakai bersama Mahjong, di Capsa baru ditampilkan) dan koin meja lawan AI
+- Ada **dua saldo**: koin akun (server, dipakai bersama Mahjong, bergerak hanya di Ranked) dan koin meja lawan AI
   (`src/engine/wallet.js`, di `localStorage`, tidak bisa dipercaya). Koin akun **tidak boleh** berubah dari permainan lawan AI atau dari
-  apa pun yang dihitung di HP. Rencana: meja online/Ranked memakai koin akun dan dihitung di server; setelah itu meja koin lawan AI
-  jadi latihan saja.
+  apa pun yang dihitung di HP.
+- **Ranked** (koin akun, meja 5/10/20, saldo minimal sama dengan Mahjong): klien minta tiket sekali pakai ke server akun
+  (`fetchTicket` → `POST /games/mahjonghk/api/auth/ticket`), lalu `POST /api/ranked/join {ticket, stake}`; Worker menukar tiket lewat
+  `env.MAHJONG.redeem()` (id akun & saldo dari server akun), `CapsaLobby.assign` menaruhnya di meja yang masih bisa dimasuki atau membuat
+  meja baru, dan membalas kode meja + **kunci kursi** (`seat.id`). Satu akun satu meja Ranked. Logikanya di `src/engine/room.js` bagian
+  "Ranked" (`reserve`, `rankedDue`, `startRanked`, `nextRanked`, `settlePayload`, `applySettle`): tanpa host, mulai 8 dtk setelah pemain
+  pertama, ronde berikutnya otomatis, pemain baru saat ronde jalan menunggu lalu menggantikan bot, tidak menyusun 2 ronde = dikeluarkan,
+  koin kurang = dilepas. Tiap ronde koin diselesaikan di server akun (`env.MAHJONG.settle`, aman diulang; gagal → dicoba lagi lewat
+  alarm, ronde berikutnya menunggu). `seat.userId` dan saldo lawan **tidak pernah** masuk `viewFor`. Belum ada rating/leaderboard/bonus,
+  dan belum ada anti-kolusi (sengaja: pemain masih sedikit; buang koin ke teman di capsa mahal karena kalah ke semua lawan).
 - **Meja online bareng teman** (tanpa koin, hanya poin): logika mejanya murni di `src/engine/room.js` (dites di `test/room.test.js`),
   `worker/room.js` hanya penyimpanan + WebSocket + alarm. Server yang membagi kartu; klien hanya menerima `viewFor(room, seat)` —
   **jangan pernah** mengirim kartu/susunan lawan sebelum ronde dibuka, dan jangan mengirim id pemain. Kiriman pemain divalidasi server
@@ -64,7 +75,9 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   `quickArrange()`. Jangan menaruh beberapa `solve()` dalam satu panggilan Worker.
 - Klien online: `src/net/online.js` (API + `RoomSession` dengan sambung ulang), bagian "meja online" di `src/main.js`. Kursi server diputar
   supaya kursi sendiri selalu indeks 0 (`toSeat`). Layar hasil memakai `showdown()` yang sama dengan mode solo: poin dihitung ulang di klien
-  dari kartu yang dibuka server. Kode meja terakhir disimpan di `capsa-room` (masuk lagi saat boot); link meja: `#room=KODE`.
+  dari kartu yang dibuka server. Meja terakhir disimpan di `capsa-room` sebagai `{code, id, ranked}` (id = id HP untuk meja teman,
+  kunci kursi untuk Ranked; masuk lagi saat boot); link meja teman: `#room=KODE`. Pemain putus yang tidak kembali tidak menahan meja
+  60 dtk: kalau semua yang tersambung sudah menyusun, ronde ditutup `OFFLINE_MS` kemudian (`worker/room.js`).
 - Hasil ronde dihitung & disimpan (`settle` di `src/main.js`) sebelum animasi buka kartu, supaya menutup halaman tidak membatalkan ronde.
 - Bot = karakter & nama yang sama dengan Mahjong Kung2: `src/engine/roster.js` + `avatars/1..12.webp` adalah salinan dari
   games-mahjong0hk (kalau di sana berubah, salin lagi). Avatar pemain ikut pilihan di Mahjong (`hkmj-settings-v1` di localStorage, satu domain).

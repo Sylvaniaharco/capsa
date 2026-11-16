@@ -398,6 +398,28 @@ button { font: inherit; color: inherit; }
 #app.portrait .ar-side .btn.primary { flex-basis: 100%; }
 #app.portrait .ar-opp { flex: 1 1 40%; text-align: left; }
 
+/* ---------- tembus keliling ("Hu besar") ---------- */
+.bigwin { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; pointer-events: none; overflow: hidden;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 207, 74, .32), rgba(0, 0, 0, .55) 70%); animation: bwBg .3s ease-out both; }
+.bigwin.out { animation: bwOut .25s ease-in both; }
+.bw-rays { position: absolute; width: 180vmax; height: 180vmax; left: calc(50% - 90vmax); top: calc(50% - 90vmax);
+  background: repeating-conic-gradient(rgba(255, 220, 120, .2) 0 6deg, transparent 6deg 18deg); animation: bwSpin 6s linear infinite; }
+.bw-box { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; animation: bwPop .55s cubic-bezier(.2, 1.6, .4, 1) both; }
+.bw-ava { width: clamp(56px, calc(var(--vh) * 17), 92px); aspect-ratio: 1; border-radius: 18px; padding: 3px;
+  background: linear-gradient(160deg, #fff3c4, #c99227); box-shadow: 0 0 0 3px rgba(255, 207, 74, .6), 0 0 34px rgba(255, 207, 74, .8); }
+.bw-ava img { display: block; width: 100%; height: 100%; border-radius: 15px; object-fit: cover; background: #cfe3f2; }
+.bw-title { font-size: clamp(38px, min(calc(var(--vh) * 15), calc(var(--vw) * 13)), 86px); font-weight: 900; line-height: .95; letter-spacing: .02em;
+  background: linear-gradient(180deg, #fff7d6 10%, #ffd34a 50%, #e08a12 90%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 0 #6b3a00) drop-shadow(0 0 22px rgba(255, 200, 60, .75)); }
+.bigwin.mine .bw-title { animation: bwPulse .9s ease-in-out .55s infinite alternate; }
+.bw-sub { padding: 4px 14px; border-radius: 999px; background: rgba(0, 0, 0, .55); font-weight: 800; font-size: clamp(13px, calc(var(--vh) * 4.2), 18px); }
+.seat.glow .ava { box-shadow: 0 0 0 3px var(--accent), 0 0 24px rgba(255, 207, 74, .9); }
+@keyframes bwBg { from { opacity: 0; } }
+@keyframes bwOut { to { opacity: 0; } }
+@keyframes bwSpin { to { rotate: 360deg; } }
+@keyframes bwPop { 0% { scale: .3; opacity: 0; } 60% { opacity: 1; } 100% { scale: 1; } }
+@keyframes bwPulse { to { scale: 1.06; } }
+
 /* ---------- hasil ---------- */
 .result { position: absolute; inset: 0; z-index: 12; display: grid; place-items: center; padding: 8px 12px; background: rgba(0, 0, 0, .35); }
 .rs-panel {
@@ -448,5 +470,5 @@ button { font: inherit; color: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card.flip, .card.dealt, .banner, .result, .toast, .pts.pop, .timer.low { animation: none; }
+  .card.flip, .card.dealt, .banner, .result, .toast, .pts.pop, .timer.low, .bigwin, .bw-rays, .bw-box, .bw-title { animation: none !important; }
 }

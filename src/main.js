@@ -105,7 +105,7 @@ function renderLobby() {
   $('#lbCoins').textContent = fmt(wallet.coins);
   const note = $('#lbNote');
   note.hidden = !isBroke(wallet.coins);
-  note.textContent = `Koin kurang dari ${fmt(minEntry(STAKES[0]))}. Saldo diisi lagi jadi ${fmt(START_COINS)} besok jam 00.01 WIB. Sementara itu main di meja Latihan dulu.`;
+  note.textContent = `Koin meja AI kurang dari ${fmt(minEntry(STAKES[0]))}. Saldo diisi lagi jadi ${fmt(START_COINS)} besok jam 00.01 WIB. Sementara itu main di meja Latihan dulu.`;
   $('#tables').innerHTML = TABLES.map((t) => {
     const locked = t.stake > 0 && wallet.coins < minEntry(t.stake);
     const sub = t.stake === 0 ? t.sub : locked ? `Butuh ${fmt(minEntry(t.stake))}` : `min ${fmt(minEntry(t.stake))}`;
@@ -120,6 +120,7 @@ function renderLobby() {
       <span class="chip" style="--c:${t.color}"><i>${t.chip}</i></span><span><b>${t.name}</b><small>${need || `min ${fmt(minEntry(t.stake))}`}</small></span></button>`;
   }).join('');
   $('#aiCoinsTag').hidden = $('#lbRanked').hidden;
+  $('#sixRankedHint').hidden = $('#lbRanked').hidden;
   // pilih mode dulu (13 / 6 kartu), baru mejanya
   const six = settings.mode === '6';
   $('#m13').hidden = six;
@@ -157,7 +158,7 @@ function renderAccount() {
   } else if (account.state === 'in') {
     const coins = account.coins === null ? '' : ` · <span><i class="coin"></i> ${fmt(account.coins)}</span>`;
     box.innerHTML = `<button class="btn ghost acct" id="btnAccount" type="button"><img src="${avatarSrc(myAvatar())}" alt="">${esc(account.name)}${coins}</button>
-      <p>Koin akun dipakai bersama Mahjong Kung2.</p>`;
+      <p>Koin akun (dipakai bersama Mahjong Kung2) hanya untuk Ranked. Meja lawan AI pakai koin HP.</p>`;
   }
 }
 async function refreshAccount() {
@@ -203,6 +204,13 @@ $('#tables').addEventListener('click', (e) => {
   sfx('tap');
   if (!load(TUT_KEY)) return showTutorial(() => enterTable(stake));
   enterTable(stake);
+});
+$('#sixRankedHint').addEventListener('click', () => {
+  settings.mode = '13';
+  save(SET_KEY, settings);
+  sfx('tap');
+  renderLobby();
+  $('#lbRanked').scrollIntoView({ block: 'center', behavior: 'smooth' });
 });
 $('#modePick').addEventListener('click', (e) => {
   const b = e.target.closest('[data-mode]');

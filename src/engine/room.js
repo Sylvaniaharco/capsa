@@ -8,6 +8,7 @@ import { scoreRound } from './scoring.js';
 import { solve, quickArrange } from './arrange.js';
 import { pickBots, clampAvatar } from './roster.js';
 import { ARRANGE_SECONDS } from './rules.js';
+import { SIX, dealSix, evalSix, isValidSix, orderSix, quickSix, solveSix, sixRules, validPlayers } from './six.js';
 import { minEntry } from './wallet.js';
 
 export const GRACE_MS = 2500; // kelonggaran jaringan setelah waktu susun habis
@@ -68,15 +69,18 @@ export function fixHost(room, connected = () => true) {
   if (nextHost) room.hostId = nextHost.id;
 }
 
+const noSubs = (room) => room.seats.map(() => null);
+
 function dealRound(room, seed, now) {
   room.round += 1;
   room.nextAt = 0;
   room.status = 'arrange';
-  room.hands = deal(mulberry32(seed >>> 0));
-  room.subs = [null, null, null, null];
-  room.tried = [false, false, false, false];
+  // Ranked 6 kartu: room.six = jumlah pemain (3–8, = jumlah kursi); selain itu capsa 13 kartu, 4 kursi
+  room.hands = room.six ? dealSix(mulberry32(seed >>> 0), room.six).hands : deal(mulberry32(seed >>> 0));
+  room.subs = noSubs(room);
+  room.tried = room.seats.map(() => false);
   room.offlineAt = 0;
-  room.deadline = now + ARRANGE_SECONDS * 1000 + GRACE_MS;
+  room.deadline = now + (room.six ? SIX.seconds : ARRANGE_SECONDS) * 1000 + GRACE_MS;
 }
 
 /** Host memulai: kursi kosong diisi bot (karakter Mahjong Kung2). rnd = sumber acak untuk memilih bot. */
@@ -105,6 +109,15 @@ const sameCards = (a, b) => a.length === b.length && [...a].sort((x, y) => x - y
 export function submit(room, seat, payload) {
   if (room.status !== 'arrange' || seat < 0) return { ok: false, error: 'Bukan waktunya menyusun' };
   const hand = room.hands[seat];
+  if (room.six) {
+    const r = payload?.rows;
+    const isRow = (x, n) => Array.isArray(x) && x.length === n && x.every((c) => Number.isInteger(c) && c >= 0 && c < 52);
+    if (!r || !isRow(r.top, 1) || !isRow(r.mid, 2) || !isRow(r.bot, 3)) return { ok: false, error: 'Susunan tidak lengkap' };
+    if (!sameCards([...r.top, ...r.mid, ...r.bot], hand)) return { ok: false, error: 'Kartu tidak cocok' };
+    if (!isValidSix(r, room.six)) return { ok: false, error: 'Urutan baris salah' };
+    room.subs[seat] = { rows: { top: orderSix(r.top), mid: orderSix(r.mid), bot: orderSix(r.bot) } };
+    return { ok: true };
+  }
   if (payload?.special) {
     const sp = detectSpecial(hand);
     if (!sp) return { ok: false, error: 'Tidak punya kartu spesial' };
@@ -140,6 +153,11 @@ export const nextAuto = (room) => (room.status === 'arrange' ? room.seats.findIn
 export function autoArrange(room, seat, smart = true) {
   if (room.status !== 'arrange' || room.subs[seat]) return;
   const hand = room.hands[seat];
+  if (room.six) {
+    const rows = smart ? solveSix(hand, room.six, { keep: 1 })[0] : quickSix(hand, room.six);
+    room.subs[seat] = { rows: { top: rows.top, mid: rows.mid, bot: rows.bot } };
+    return;
+  }
   const sp = detectSpecial(hand);
   if (sp) { room.subs[seat] = { special: sp.type }; return; }
   const { top, mid, bot } = smart ? solve(hand, { keep: 1 })[0] : quickArrange(hand);
@@ -151,18 +169,18 @@ export function finishRound(room, now = 0) {
   if (room.status !== 'arrange') return;
   // Ranked: pemain yang masih di meja tapi tidak menyusun sampai waktu habis dihitung tidak aktif
   room.seats.forEach((s, i) => { if (!s.bot) s.afk = !room.subs[i] && !s.left ? (s.afk || 0) + 1 : 0; });
-  for (let i = 0; i < 4; i++) autoArrange(room, i, false);
+  for (let i = 0; i < room.seats.length; i++) autoArrange(room, i, false);
   const players = room.subs.map((sub, i) => {
     if (!sub.special) return { rows: sub.rows };
     const sp = detectSpecial(room.hands[i]);
     return { special: { type: sp.type, pts: sp.pts }, rows: sp.rows };
   });
-  const res = scoreRound(players);
+  const res = scoreRound(players, room.six ? sixRules(room.six) : undefined);
   res.net.forEach((n, i) => { room.totals[i] += n; });
   room.last = { round: room.round, net: res.net, shown: players.map((p) => (p.special ? { special: p.special.type, rows: p.rows } : { rows: p.rows })) };
   room.status = 'result';
   room.hands = null;
-  room.subs = [null, null, null, null];
+  room.subs = noSubs(room);
   room.deadline = 0;
   if (room.ranked) {
     // koin sementara = poin x taruhan; angka pasti (saldo tidak bisa minus) diisi applySettle() setelah server akun menjawab
@@ -178,13 +196,20 @@ export function finishRound(room, now = 0) {
 // Ronde berjalan sendiri (tanpa host): mulai RANKED_WAIT_MS setelah pemain pertama, lanjut RANKED_NEXT_MS setelah hasil.
 // Pemain baru boleh masuk kapan saja: kalau ronde sedang jalan, dia menunggu dan menggantikan bot di ronde berikutnya.
 
-export function createRanked(code, stake, now) {
+/** six = jumlah pemain capsa 6 kartu (3–8), 0 = capsa 13 kartu (4 kursi). */
+export function createRanked(code, stake, now, six = 0) {
+  const n = six ? six : 4;
+  const empty = () => Array.from({ length: n }, () => null);
   return {
-    code, status: 'lobby', ranked: { stake }, hostId: null, createdAt: now,
-    seats: [null, null, null, null], pending: [],
-    round: 0, hands: null, subs: [null, null, null, null], deadline: 0, totals: [0, 0, 0, 0], last: null, startAt: 0, nextAt: 0,
+    code, status: 'lobby', ranked: { stake }, six: six || 0, hostId: null, createdAt: now,
+    seats: empty(), pending: [],
+    round: 0, hands: null, subs: empty(), deadline: 0, totals: Array.from({ length: n }, () => 0), last: null, startAt: 0, nextAt: 0,
   };
 }
+
+export const validSix = (n) => n === 0 || validPlayers(n);
+/** Pemain asli maksimal 4 per meja (batas penyelesaian koin di server akun); kursi sisanya bot. */
+const maxHumans = (room) => Math.min(room.seats.length, 4);
 
 const rankedHumans = (room) => room.seats.filter((s) => s && !s.bot && !s.left);
 export const isPending = (room, id) => !!room.pending?.some((p) => p.id === id);
@@ -194,7 +219,9 @@ const replaceable = (room) => room.seats.filter((s) => s && (s.bot || s.left)).l
 /** Masih bisa menerima pemain baru? (dipakai pencari meja) */
 export function joinable(room) {
   if (!room.ranked || room.status === 'closed') return false;
-  return room.status === 'lobby' ? room.seats.some((s) => !s) : room.pending.length < replaceable(room);
+  const humans = rankedHumans(room).length;
+  if (room.status === 'lobby') return humans < maxHumans(room);
+  return room.pending.length < replaceable(room) && humans + room.pending.length < maxHumans(room);
 }
 
 /** Akun ini sedang duduk (atau menunggu) di meja ini? -> { key, left } | null */
@@ -228,7 +255,7 @@ export function reserve(room, user, now) {
   room.seats[room.seats.findIndex((s) => !s)] = seat;
   const n = rankedHumans(room).length;
   if (n === 1) room.startAt = now + RANKED_WAIT_MS;
-  if (n === 4) room.startAt = now;
+  if (n >= maxHumans(room)) room.startAt = now;
   return { ok: true, key: seat.id };
 }
 
@@ -317,7 +344,7 @@ export function viewFor(room, seat, connected = () => true, viewerId = '') {
   const arranging = room.status === 'arrange';
   const me = seat >= 0 ? room.seats[seat] : room.pending?.find((p) => p.id === viewerId);
   return {
-    code: room.code, status: room.status, round: room.round, seat,
+    code: room.code, status: room.status, round: room.round, seat, six: room.six || 0,
     // Ranked: taruhan, saldo koin SENDIRI (saldo lawan tidak dikirim), dan jadwal mulai / ronde berikutnya (jam server)
     ranked: room.ranked ? { stake: room.ranked.stake, coins: me?.coins ?? null, waiting: seat < 0 && !!me, startAt: room.startAt, nextAt: room.nextAt } : null,
     host: room.seats.findIndex((s) => s && !s.bot && s.id === room.hostId),

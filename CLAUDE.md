@@ -92,8 +92,14 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   seri), bonus tengah pair As +1, bawah tris +3 / SF +5 / royal +7, tembus keliling hanya ≤4 pemain, tanpa kartu spesial.
   `scoreRound(players, sixRules(n))` — `scoreRound` menerima aturan (default `CAPSA13`). Tabel AI (`sixStrength`) dibuat saat jalan,
   bukan lewat `calibrate`. Di `src/main.js` semua bagian meja memakai `G.v` (jenis permainan: `V13` atau `sixVariant(n)`), jumlah kursi
-  = `G.seats.length`; kursi dibuat `buildSeats()` (bukan di HTML). Belum ada versi online/Ranked.
+  = `G.seats.length`; kursi dibuat `buildSeats()` (bukan di HTML). Ranked 6 kartu ada (di bawah); belum ada meja bareng teman untuk 6 kartu.
   Lobi: pilih mode dulu (`#modePick`, 13 / 6 kartu, diingat di `settings.mode`); `#m13` = Ranked + lawan AI + bareng teman, `#m6` = jumlah pemain + meja.
+- **Ranked 6 kartu** (keputusan Teddy, 16 Nov 2026): meja Ranked yang sama, `room.six` = jumlah pemain (3–8) = jumlah kursi (0 = 13 kartu, 4 kursi);
+  `createRanked(code, stake, now, six)`. `dealRound`/`submit`/`autoArrange`/`finishRound` di `src/engine/room.js` bercabang di `room.six`
+  (six.js; tanpa kartu spesial, waktu `SIX.seconds`). **Maksimal 4 pemain asli per meja** (`maxHumans`) karena `cleanSettle` di Mahjong
+  menolak >4 pemain — jangan naikkan tanpa mengubah repo Mahjong dulu. `/ranked/join` menerima `six` (0 atau 3–8); `CapsaLobby.assign(stake, user, six)`
+  memakai antrean per jenis meja (`six8:5`, dst). Klien: `O.n` = jumlah kursi (`toSeat`), `G.v` = `sixVariant(v.six)` untuk meja online,
+  `view.six` dari server. Lobi: `#lbRanked6` di `#m6` (ikut `settings.sixN`).
 - Teks UI bahasa Indonesia. Ikon lambang kartu pakai SVG `<symbol>` di `index.html` (bukan karakter ♠♥, yang di Android bisa jadi emoji).
 
 ## PWA

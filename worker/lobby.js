@@ -20,8 +20,9 @@ export class CapsaLobby extends DurableObject {
     return this.env.ROOMS.get(this.env.ROOMS.idFromName(code));
   }
 
-  /** user = { userId, name, avatar, coins } (sudah diverifikasi). -> { ok, code, key } | { ok:false, error } */
-  async assign(stake, user) {
+  /** user = { userId, name, avatar, coins } (sudah diverifikasi). six = jumlah pemain capsa 6 kartu (3–8), 0 = 13 kartu.
+   *  -> { ok, code, key } | { ok:false, error } */
+  async assign(stake, user, six = 0) {
     const st = this.state;
     const key = randomKey();
     try {
@@ -37,15 +38,16 @@ export class CapsaLobby extends DurableObject {
       }
       // 2) meja terbuka untuk taruhan ini, kalau tidak ada/penuh buat meja baru
       let lastError = 'Gagal mencari meja';
+      const slot = six ? `six${six}:${stake}` : stake; // antrean terpisah per jenis meja (13 kartu / 6 kartu per jumlah pemain)
       for (let i = 0; i < 3; i++) {
-        let code = st.open[stake];
+        let code = st.open[slot];
         if (!code) {
           code = randomCode();
-          if (!(await this.room(code).initRanked(code, stake)).ok) continue;
-          st.open[stake] = code;
+          if (!(await this.room(code).initRanked(code, stake, six)).ok) continue;
+          st.open[slot] = code;
         }
         const res = await this.room(code).reserve({ ...user, key });
-        if (!res.ok || !res.joinable) delete st.open[stake];
+        if (!res.ok || !res.joinable) delete st.open[slot];
         if (res.ok) {
           st.active[user.userId] = code;
           return { ok: true, code, key: res.key };

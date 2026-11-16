@@ -120,7 +120,6 @@ function renderLobby() {
       <span class="chip" style="--c:${t.color}"><i>${t.chip}</i></span><span><b>${t.name}</b><small>${need || `min ${fmt(minEntry(t.stake))}`}</small></span></button>`;
   }).join('');
   $('#aiCoinsTag').hidden = $('#lbRanked').hidden;
-  $('#sixRankedHint').hidden = $('#lbRanked').hidden;
   // pilih mode dulu (13 / 6 kartu), baru mejanya
   const six = settings.mode === '6';
   $('#m13').hidden = six;
@@ -138,6 +137,10 @@ function renderLobby() {
   const low = RANKS[13 - sixRankCount(settings.sixN)];
   $('#sixInfo').textContent = `${settings.sixN} pemain · kartu A sampai ${low}`;
   $('#sixTables').innerHTML = $('#tables').innerHTML.replaceAll('data-stake=', 'data-six=');
+  // Ranked 6 kartu: koin akun, jumlah pemain ikut pilihan di atas (maks 4 pemain asli, sisanya bot)
+  $('#lbRanked6').hidden = $('#lbRanked').hidden;
+  $('#rankedSixTables').innerHTML = $('#rankedTables').innerHTML.replaceAll('data-ranked=', 'data-ranked-six=');
+  $('#rankedSixInfo').textContent = `Meja ${settings.sixN} pemain · maksimal 4 pemain asli, sisa kursi diisi bot`;
   const sb = $('#btnSound');
   sb.textContent = `Suara: ${settings.sound ? 'nyala' : 'mati'}`;
   sb.setAttribute('aria-pressed', String(settings.sound));
@@ -204,13 +207,6 @@ $('#tables').addEventListener('click', (e) => {
   sfx('tap');
   if (!load(TUT_KEY)) return showTutorial(() => enterTable(stake));
   enterTable(stake);
-});
-$('#sixRankedHint').addEventListener('click', () => {
-  settings.mode = '13';
-  save(SET_KEY, settings);
-  sfx('tap');
-  renderLobby();
-  $('#lbRanked').scrollIntoView({ block: 'center', behavior: 'smooth' });
 });
 $('#modePick').addEventListener('click', (e) => {
   const b = e.target.closest('[data-mode]');
@@ -1069,7 +1065,7 @@ const ROOM_KEY = 'capsa-room', NAME_KEY = 'capsa-name';
 let O = null; // { session, code, seat, view, shown } — shown = nomor ronde yang hasilnya sudah ditampilkan
 let onlineOn = false;
 let rankedOn = false; // server punya sambungan ke server akun (config.ranked)
-const toSeat = (d) => (d + O.seat) % 4;
+const toSeat = (d) => (d + O.seat) % O.n;
 const myOnlineName = () => (account.state === 'in' ? account.name : load(NAME_KEY));
 /** Detik tersisa sampai waktu server `at` (jam HP dikoreksi dengan selisih jam server). */
 const secsUntil = (at) => Math.max(0, Math.ceil((at - (Date.now() + (O?.offset || 0))) / 1000));
@@ -1127,7 +1123,7 @@ async function joinOnline(raw) {
 /** id = kunci kursi: id acak HP ini (meja teman) atau kunci dari server (Ranked). */
 function connectOnline(code, name, id = clientId(), ranked = false) {
   if (G) return;
-  O = { code, seat: 0, view: null, shown: 0, session: null, ranked, spect: false, offset: 0, timer: 0 };
+  O = { code, seat: 0, n: 4, view: null, shown: 0, session: null, ranked, spect: false, offset: 0, timer: 0 };
   save(ROOM_KEY, { code, id, ranked });
   O.timer = setInterval(tickOnline, 500);
   O.session = new RoomSession(code, { id, name, avatar: myAvatar() }, {
@@ -1138,13 +1134,13 @@ function connectOnline(code, name, id = clientId(), ranked = false) {
   });
 }
 /** Masuk meja Ranked: minta tiket ke server akun, tukar di server Capsa jadi kode meja + kunci kursi. */
-async function joinRanked(stake) {
+async function joinRanked(stake, six = 0) {
   if (account.state !== 'in') return toast('Masuk dengan Google dulu untuk main Ranked', 3000);
   if (account.coins !== null && account.coins < minEntry(stake)) return toast(`Meja ${stake} butuh saldo minimal ${fmt(minEntry(stake))} koin`, 3000);
-  if (!load(TUT_KEY)) return showTutorial(() => joinRanked(stake));
+  if (six ? !load(TUT6_KEY) : !load(TUT_KEY)) return (six ? showTutorial6 : showTutorial)(() => joinRanked(stake, six));
   try {
     const ticket = await fetchTicket();
-    const { code, key } = await api('/ranked/join', { method: 'POST', body: { ticket, stake, avatar: myAvatar() } });
+    const { code, key } = await api('/ranked/join', { method: 'POST', body: { ticket, stake, six, avatar: myAvatar() } });
     connectOnline(code, account.name, key, true);
   } catch (e) {
     toast(e.message || 'Gagal masuk meja Ranked', 3500);
@@ -1169,16 +1165,19 @@ function onOnlineState(v, serverNow) {
   if (!O) return;
   O.view = v;
   O.seat = Math.max(0, v.seat);
+  O.n = v.seats.length; // 4 kursi (13 kartu) atau 3–8 (Ranked 6 kartu)
   O.ranked = !!v.ranked;
   O.spect = v.seat < 0; // Ranked: sudah pesan kursi tapi ronde sedang jalan, masuk di ronde berikutnya
   if (serverNow) O.offset = serverNow - Date.now();
   if (!G || G.mode !== 'online') {
-    G = { mode: 'online', stake: 0, gen: 0, round: null, fast: false, v: V13, seats: [0, 1, 2, 3].map((d) => ({ name: '', avatar: 0, isMe: d === 0 })) };
+    G = { mode: 'online', stake: 0, gen: 0, round: null, fast: false, v: v.six ? sixVariant(v.six) : V13, seats: Array.from({ length: O.n }, (_, d) => ({ name: '', avatar: 0, isMe: d === 0 })) };
+    if (v.six) sixStrength(v.six); // tabel AI untuk tombol Saran
     closeModal();
     show('table');
     $('#table').classList.add('online');
     $('#table').classList.toggle('ranked', O.ranked);
-    $('#tbInfo').innerHTML = O.ranked ? `Ranked · <b>${v.ranked.stake}</b> koin / poin` : `Meja <b>${esc(O.code)}</b> · bareng teman`;
+    $('#table').classList.toggle('six', !!v.six);
+    $('#tbInfo').innerHTML = O.ranked ? (v.six ? `Ranked 6 kartu · <b>${v.ranked.stake}</b> koin` : `Ranked · <b>${v.ranked.stake}</b> koin / poin`) : `Meja <b>${esc(O.code)}</b> · bareng teman`;
     buildSeats();
     $('#arrange').hidden = true;
     $('#result').hidden = true;
@@ -1211,7 +1210,7 @@ function onOnlineState(v, serverNow) {
 /** Nama, avatar, total poin, dan tanda status tiap kursi dari tampilan server. */
 function syncOnlineSeats(v) {
   const pending = v.status === 'result' && v.last && G.round?.phase !== 'result'; // hasil ronde belum selesai ditampilkan
-  for (let d = 0; d < 4; d++) {
+  for (let d = 0; d < O.n; d++) {
     const k = toSeat(d), s = v.seats[k], el = seatEl(d);
     const total = v.totals[k];
     const me = d === 0 && !O.spect;
@@ -1240,7 +1239,7 @@ function renderSpectate(v) {
   if (G.round) { clearRoundTimers(G.round); G.round = null; }
   $('#arrange').hidden = true;
   $('#result').hidden = true;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < O.n; i++) {
     if (!seatEl(i).querySelector('.hrow .card')) renderHand(i, null);
     setCap(i, '');
     setPts(i, null);
@@ -1292,13 +1291,13 @@ function beginOnlineRound(v, serverNow) {
     no: v.round, phase: 'arrange', botTimers: [], tick: 0, result: null, pendingSubmit: false, timedOut: false,
     // jam di layar berhenti GRACE_MS sebelum batas server, supaya kiriman terakhir masih sempat sampai
     deadline: performance.now() + (v.deadline - serverNow) - GRACE_MS,
-    players: [0, 1, 2, 3].map((d) => ({ cards: d === 0 ? v.hand : null, special: d === 0 ? detectSpecial(v.hand) : null, rows: null, declared: false, ready: false })),
+    players: Array.from({ length: O.n }, (_, d) => ({ cards: d === 0 ? v.hand : null, special: d === 0 ? G.v.special(v.hand) : null, rows: null, declared: false, ready: false })),
   });
   $('#result').hidden = true;
   $('#arrange').hidden = true;
   $('#center').replaceChildren();
   markRow(-1);
-  for (let i = 0; i < 4; i++) { renderHand(i, null, undefined, 'dealt'); setCap(i, ''); setPts(i, null); }
+  for (let i = 0; i < O.n; i++) { renderHand(i, null, undefined, 'dealt'); setCap(i, ''); setPts(i, null); }
   sfx('deal');
   R.tick = setInterval(onTick, 200);
   const me = R.players[0];
@@ -1321,7 +1320,7 @@ function playOnlineResult(v) {
     ++G.gen;
     G.round = { no: v.last.round, phase: 'wait', botTimers: [], tick: 0, result: null };
   }
-  G.round.players = [0, 1, 2, 3].map((d) => {
+  G.round.players = Array.from({ length: O.n }, (_, d) => {
     const p = v.last.shown[toSeat(d)];
     return p.special
       ? { declared: true, special: { type: p.special, pts: SPECIAL[p.special], rows: p.rows }, rows: null, ready: true }
@@ -1355,6 +1354,12 @@ $('#rankedTables').addEventListener('click', (e) => {
   if (!b) return;
   sfx('tap');
   joinRanked(Number(b.dataset.ranked));
+});
+$('#rankedSixTables').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ranked-six]');
+  if (!b) return;
+  sfx('tap');
+  joinRanked(Number(b.dataset.rankedSix), settings.sixN);
 });
 $('#btnCreate').addEventListener('click', () => { sfx('tap'); createOnline(); });
 $('#btnJoin').addEventListener('click', async () => {

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Capsa Kung2" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="Capsa susun 13 kartu: kamu lawan 3 pemain, meja koin 5, 10, dan 20 per poin." />
+  <meta name="description" content="Capsa susun 13 kartu lawan 3 pemain, atau Capsa 6 kartu 3–8 pemain. Meja koin 5, 10, dan 20 per poin." />
   <title>Capsa Kung2</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
@@ -31,7 +31,7 @@
       <div class="lb-brand">
         <div id="emblem" class="emblem" aria-hidden="true"></div>
         <h1>Capsa <span>Kung2</span></h1>
-        <p class="lb-tag">Capsa susun 13 kartu &middot; kamu lawan 3 pemain</p>
+        <p class="lb-tag">Capsa susun 13 kartu &middot; atau 6 kartu sampai 8 pemain</p>
         <div class="lb-row">
           <div class="wallet" title="Koin meja lawan AI (tersimpan di HP ini)"><i class="coin"></i><b id="lbCoins">1.000</b><small id="lbCoinsTag" hidden>meja AI</small></div>
           <button id="btnRules" class="btn ghost" type="button">Aturan</button>
@@ -48,6 +48,11 @@
         </div>
         <h2>Lawan AI <small id="aiCoinsTag">koin di HP ini</small></h2>
         <div id="tables" class="tables"></div>
+        <div class="lb-six">
+          <h2>Capsa 6 kartu <small>susun 1-2-3 · lawan AI</small></h2>
+          <div class="six-pick"><span>Pemain</span><div id="sixPlayers" class="seg" role="group" aria-label="Jumlah pemain"></div><small id="sixInfo"></small></div>
+          <div id="sixTables" class="tables"></div>
+        </div>
         <div id="lbOnline" class="lb-online" hidden>
           <h2>Main bareng teman</h2>
           <div class="lb-row2">
@@ -66,10 +71,7 @@
         <button id="btnLeave" class="btn ghost small" type="button" aria-label="Keluar meja">&larr; Keluar</button>
         <div id="tbInfo" class="tb-info"></div>
       </div>
-      <div class="seat s2" data-seat="2"></div>
-      <div class="seat s3" data-seat="3"></div>
-      <div class="seat s1" data-seat="1"></div>
-      <div class="seat s0" data-seat="0"></div>
+      <!-- kursi dibuat buildSeats() di src/main.js -->
       <div id="center" class="center"></div>
 
       <!-- SUSUN KARTU -->

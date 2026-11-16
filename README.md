@@ -1,6 +1,7 @@
 # Capsa Kung2
 
-Capsa susun (13 kartu, 3 baris) di browser: kamu lawan 3 AI dengan meja koin 5 / 10 / 20 per poin, atau **online bareng teman**.
+Capsa susun (13 kartu, 3 baris) di browser: kamu lawan 3 AI dengan meja koin 5 / 10 / 20 per poin, **online bareng teman**, atau Ranked.
+Ada juga **Capsa 6 kartu** (susun 1-2-3, 3–8 pemain, lawan AI).
 HTML/JS/CSS murni (ES modules), tanpa framework, tanpa bundler. Server: Cloudflare Worker + Durable Object. Jalan di HP (landscape & portrait) dan desktop.
 
 ## Aturan
@@ -29,6 +30,39 @@ Hal yang diputuskan saat membuat (ubah di `src/engine/rules.js` kalau maunya lai
 - Pemain boleh memilih tidak memakai kartu spesial dan menyusun biasa. AI selalu memakainya.
 - Urutan kombinasi poker biasa; As paling tinggi, A-2-3-4-5 straight paling kecil; lambang tidak dipakai (nilai sama = seri).
 - Susunan salah (mis. Atas lebih kuat dari Tengah) tidak bisa dikirim; kalau waktu 60 detik habis, kartu disusun otomatis.
+
+## Capsa 6 kartu (lawan AI, 3–8 pemain)
+
+Pilih jumlah pemain (3–8) di lobi, lalu mejanya (Latihan / 5 / 10 / 20, koin sama dengan meja lawan AI). Tiap pemain dapat **6 kartu**
+dan menyusunnya jadi **Atas 1**, **Tengah 2**, **Bawah 3** (Bawah ≥ Tengah ≥ Atas). Waktu susun 30 detik.
+
+Kartu diambil dari As ke bawah sebanyak `ceil(6 × pemain / 4)` nilai; sisanya tidak dibagi (tidak ketahuan):
+
+| Pemain | Kartu dibagi | Dek | Sisa |
+| --- | --- | --- | --- |
+| 3 | 18 | A–10 (20) | 2 |
+| 4 | 24 | A–9 (24) | 0 |
+| 5 | 30 | A–7 (32) | 2 |
+| 6 | 36 | A–6 (36) | 0 |
+| 7 | 42 | A–4 (44) | 2 |
+| 8 | 48 | A–3 (48) | 0 |
+
+| Kejadian | Poin |
+| --- | --- |
+| Menang satu baris | +1 (kalah −1; tidak ada seri) |
+| **Tembus** — menang 3 baris dari satu lawan | poin lawan itu ×2 |
+| **Tembus keliling** — tembus ke semua lawan | ×2 lagi, **hanya meja 3–4 pemain** |
+| Tengah: pair As | bonus +1 |
+| Bawah: Tris / Straight Flush / Royal Flush | bonus +3 / +5 / +7 |
+
+- Urutan kombinasi: Kartu Tinggi < Pair < Straight < **Flush** < Tris < Straight Flush < Royal (A-K-Q satu lambang).
+  Flush di atas straight karena di dek pendek flush 3 kartu lebih jarang. Tengah hanya bisa Kartu Tinggi atau Pair; Atas hanya satu kartu.
+- As boleh jadi kartu terkecil straight bersama dua kartu terendah dek (meja 3 pemain: A-10-J; meja 8 pemain: A-3-4).
+- Nilai sama → **lambang** kartu penentu (♠ > ♥ > ♣ > ♦), jadi tidak ada seri. Kombinasi dibandingkan dulu, lalu nilai kartu
+  (termasuk kicker), baru lambang kartu tertinggi.
+- Tidak ada kartu spesial. Bonus dibayar hanya kalau baris itu menang dan ikut dikali tembus.
+- AI: semua 60 cara susun dicoba, dinilai dari peluang menang tiap baris (sebaran dibuat saat pertama main per jumlah pemain, berseed tetap).
+- Belum ada versi online/Ranked untuk mode ini.
 
 ## Main bareng teman (online)
 
@@ -73,6 +107,7 @@ npm run dev         # python3 -m http.server 8080, lalu buka http://localhost:80
 npm run dev:online  # build + wrangler dev, lalu buka http://localhost:8787/games/capsa/ (meja online jalan)
 npm test       # node --test test/*.test.js
 npm run sim    # 2000 ronde AI vs AI: cek zero-sum, sebaran poin, frekuensi tembus & kartu spesial
+npm run sim:six  # sama untuk Capsa 6 kartu, per jumlah pemain 3–8
 ```
 
 `?seed=123` di alamat membuat kartu ronde pertama bisa diulang (untuk mengecek bug).
@@ -90,6 +125,7 @@ Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file st
 
 - `src/engine/` — murni, tanpa DOM: `cards` (kartu + RNG berseed), `hands` (nilai kombinasi), `special` (kartu spesial),
   `rules` (semua angka aturan), `scoring` (poin ronde), `arrange` (pencari susunan terbaik untuk AI & tombol Saran),
+  `six` (Capsa 6 kartu: dek pendek, nilai baris, susunan sah, AI),
   `strength-data` (tabel hasil `npm run calibrate`), `wallet` (koin).
 - `src/engine/room.js` — logika meja online & Ranked (murni); `worker/` — Worker (`index.js`: API), Durable Object meja (`room.js`),
   dan pencari meja Ranked (`lobby.js`);
@@ -98,4 +134,4 @@ Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file st
   Elton, Jason, James, Jordan, KungKung, PoPo).
 - `src/ui/` — `cardview` (kartu DOM), `sfx` (suara), `install` (tombol pasang aplikasi), `account` (akun bersama Mahjong + laporan error); `src/main.js` — alur layar; `css/style.css`; `index.html`.
 - PWA: `manifest.webmanifest`, `sw.js` (diisi saat build), `icons/` (sumber `icon.svg`, PNG dari `scripts/icons.cjs`).
-- `scripts/` — `build`, `simulate`, `calibrate`, `icons`; `test/` — tes engine.
+- `scripts/` — `build`, `simulate`, `simulate-six`, `calibrate`, `icons`; `test/` — tes engine.

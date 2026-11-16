@@ -185,6 +185,20 @@ button { font: inherit; color: inherit; }
 .tbl.locked { opacity: .55; cursor: not-allowed; }
 .tbl.locked small { color: #ffd9a8; }
 
+.lb-six { margin-top: 1.2em; }
+.su-order { white-space: nowrap; }
+.su-i { display: inline-block; width: 1em; height: 1em; vertical-align: -.12em; fill: #f3f6f4; }
+.su-i.red { fill: #ff6b6b; }
+.six-pick { display: flex; align-items: center; flex-wrap: wrap; gap: .45em .7em; margin-bottom: .7em; }
+.six-pick > span { font-size: .86em; color: var(--muted); font-weight: 700; }
+.six-pick small { font-size: .82em; color: var(--muted); }
+.seg { display: flex; border-radius: 999px; padding: 3px; gap: 2px; background: rgba(0, 0, 0, .35); border: 1px solid var(--line); }
+.seg-b {
+  min-width: 2.4em; min-height: 2.2em; border: 0; border-radius: 999px; cursor: pointer; background: transparent;
+  color: var(--text); font: inherit; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.seg-b.on { background: var(--accent); color: var(--accent-ink); }
+.seg-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .lb-online { margin-top: 1.2em; }
 .lb-row2 { display: flex; gap: .7em; }
 .lb-row2 .btn { flex: 1 1 0; }
@@ -245,6 +259,22 @@ button { font: inherit; color: inherit; }
 #app.portrait .seat.s2 { flex-direction: column-reverse; top: 58px; }
 #app.portrait .seat.s1, #app.portrait .seat.s3 { top: 40%; }
 #app.portrait .center { top: 64%; max-width: calc(100% - 32px); }
+/* Capsa 6 kartu: 2–7 lawan; posisi --lx/--ly (landscape) & --px/--py (portrait) diisi buildSeats() */
+#table.six { --mw: min(calc(var(--vw) * 3.3), calc(var(--vh) * 6.6)); }
+#app.portrait #table.six { --mw: min(calc(var(--vw) * 7.4), calc(var(--vh) * 3.4)); }
+.seat.sx { left: var(--lx); top: var(--ly); transform: translate(-50%, -50%); flex-direction: column; gap: 3px; }
+#app.portrait .seat.sx { left: var(--px); top: var(--py); }
+#table.six .seat.sx .who { gap: 5px; max-width: calc(var(--mw) * 4.2); }
+#table.six .seat.sx .ava { width: clamp(24px, calc(var(--vh) * 7), 34px); border-radius: 8px; padding: 2px; }
+#app.portrait #table.six .seat.sx .ava { width: clamp(24px, calc(var(--vw) * 7.5), 34px); }
+#table.six .seat.sx .nm b { font-size: 11.5px; }
+#table.six .seat.sx .nm .coins { font-size: 11px; }
+#table.six .seat.sx .pts { position: absolute; left: 100%; bottom: 0; margin-left: 3px; min-width: 32px; padding: 2px 6px; font-size: 13.5px; }
+#app:not(.portrait) #table.six .seat.sx.rl .pts, #app.portrait #table.six .seat.sx.rp .pts { left: auto; right: 100%; margin: 0 3px 0 0; }
+#app.portrait #table.six .center { top: 69.5%; max-width: calc(var(--vw) * 76); }
+#app.portrait #table.six .banner { font-size: 19px; padding: 8px 14px; }
+#table.six .seat.sx .cap { font-size: 10.5px; padding: 1px 6px; }
+#table.six .center { max-width: calc(var(--vw) * 60); }
 
 .who { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .seat.s1 .who, .seat.s3 .who { max-width: calc(var(--mw) * 3.5); }

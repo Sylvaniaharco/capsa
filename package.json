@@ -2,12 +2,13 @@
   "name": "capsa",
   "version": "1.0.0",
   "private": true,
-  "description": "Capsa Kung2: capsa susun 13 kartu di browser — lawan 3 AI atau online bareng teman (Cloudflare Workers + Durable Objects).",
+  "description": "Capsa Kung2: capsa susun 13 kartu (lawan 3 AI / online / Ranked) dan Capsa 6 kartu (susun 1-2-3, 3–8 pemain lawan AI).",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test test/*.test.js",
     "sim": "node scripts/simulate.mjs 2000",
+    "sim:six": "node scripts/simulate-six.mjs 2000",
     "calibrate": "node scripts/calibrate.mjs",
     "dev": "python3 -m http.server 8080",
     "dev:online": "npm run build && npx wrangler dev"

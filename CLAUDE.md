@@ -88,7 +88,7 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   dihitung ulang dari seed: keputusan bot jangan memakai `Math.random()` (pakai `mulberry32(R.seed + …)`).
 - Cara main singkat (`showTutorial`) muncul sekali sebelum meja pertama (`TUT_KEY`); Capsa 6 kartu punya sendiri (`showTutorial6`, `TUT6_KEY`).
 - **Capsa 6 kartu** (keputusan Teddy, 16 Nov 2026): engine di `src/engine/six.js`, angka aturan di `SIX`/`SIX_CAT` (`rules.js`), tes
-  `test/six.test.js`. Susun 1-2-3, dek dari As ke bawah `ceil(6n/4)` nilai, flush > straight, lambang penentu kalau nilai sama (tidak ada
+  `test/six.test.js`. Susun 1-2-3, dek dari As ke bawah `ceil(6n/4)` nilai, flush > straight, As selalu tertinggi (tidak ada straight As-kecil), lambang penentu kalau nilai sama (tidak ada
   seri), bonus tengah pair As +1, bawah tris +3 / SF +5 / royal +7, tembus keliling hanya ≤4 pemain, tanpa kartu spesial.
   `scoreRound(players, sixRules(n))` — `scoreRound` menerima aturan (default `CAPSA13`). Tabel AI (`sixStrength`) dibuat saat jalan,
   bukan lewat `calibrate`. Di `src/main.js` semua bagian meja memakai `G.v` (jenis permainan: `V13` atau `sixVariant(n)`), jumlah kursi

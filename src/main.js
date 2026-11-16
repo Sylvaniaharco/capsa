@@ -301,7 +301,7 @@ $('#btnRules').addEventListener('click', () => {
     <p>Tiap pemain dapat 6 kartu, disusun <b>Atas 1</b>, <b>Tengah 2</b>, <b>Bawah 3</b> (Bawah ≥ Tengah ≥ Atas). Kartu diambil dari As ke bawah
     sebanyak yang perlu: 3 pemain A–10 (2 kartu tidak dibagi), 4 pemain A–9, 5 pemain A–7, 6 pemain A–6, 7 pemain A–4, 8 pemain A–3.</p>
     <ul><li>Urutan: Kartu Tinggi &lt; Pair &lt; Straight &lt; Flush &lt; Tris &lt; Straight Flush &lt; Royal (A-K-Q satu lambang).
-    As boleh jadi kartu terkecil straight bersama dua kartu terendah dek (mis. A-10-J di meja 3 pemain).</li>
+    As selalu kartu tertinggi (A-10-J bukan straight).</li>
     <li>Nilai sama ditentukan <b>lambang</b>: ${SUIT_ORDER} — tidak ada seri.</li>
     <li>Menang baris <b>+1</b>. Bonus: Tengah pair As <b>+1</b>; Bawah Tris <b>+3</b>, Straight Flush <b>+5</b>, Royal <b>+7</b>.</li>
     <li>Tembus <b>×2</b>. Tembus keliling (×2 lagi) hanya di meja 3–4 pemain. Tidak ada kartu spesial.</li></ul>

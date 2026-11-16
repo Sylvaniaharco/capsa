@@ -1,10 +1,11 @@
 // Capsa Kung2 — titik masuk & alur layar: lobi → meja → susun kartu → buka kartu → hasil.
-import { deal, mulberry32, rankOf, suitOf, parseCards } from './engine/cards.js';
+import { deal, mulberry32, rankOf, suitOf, parseCards, RANKS } from './engine/cards.js';
 import { evalRow, catName, orderRow } from './engine/hands.js';
 import { detectSpecial } from './engine/special.js';
 import { scoreRound, duelFor, rowBonus } from './engine/scoring.js';
 import { solve } from './engine/arrange.js';
 import { ROWS, ROW_NAMES, SPECIAL, SPECIAL_NAMES, ARRANGE_SECONDS } from './engine/rules.js';
+import { SIX, dealSix, evalSix, sixCatName, sixBonus, sixRules, orderSix, solveSix, sixStrength, sixRankCount, validPlayers } from './engine/six.js';
 import { STAKES, minEntry, normalizeWallet, coinDelta, applyDelta, isBroke, START_COINS } from './engine/wallet.js';
 import { pickBots, clampAvatar, AVATAR_COUNT } from './engine/roster.js';
 import { cardEl, backEl } from './ui/cardview.js';
@@ -22,13 +23,30 @@ const cls = (n) => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+// ---------- jenis permainan ----------
+// Capsa 13 kartu (4 pemain, susun 3-5-5) atau Capsa 6 kartu (3–8 pemain, susun 1-2-3). Semua bagian meja memakai G.v.
+const V13 = {
+  six: 0, n: 4, sizes: [3, 5, 5], secs: ARRANGE_SECONDS, rules: undefined,
+  ev: evalRow, cat: catName, bonus: rowBonus, order: orderRow, special: detectSpecial,
+  deal: (rng) => deal(rng), solve: (cards, keep) => solve(cards, { keep }),
+};
+function sixVariant(n) {
+  return {
+    six: n, n, sizes: SIX.sizes, secs: SIX.seconds, rules: sixRules(n),
+    ev: (c) => evalSix(c, n), cat: sixCatName, bonus: sixBonus, order: (c) => orderSix(c, n), special: () => null,
+    deal: (rng) => dealSix(rng, n).hands, solve: (cards, keep) => solveSix(cards, n, { keep }),
+  };
+}
+
 // ---------- simpanan di HP ----------
-const WALLET_KEY = 'capsa-wallet', SET_KEY = 'capsa-set', ROUND_KEY = 'capsa-round', TUT_KEY = 'capsa-tut';
+const WALLET_KEY = 'capsa-wallet', SET_KEY = 'capsa-set', ROUND_KEY = 'capsa-round', TUT_KEY = 'capsa-tut', TUT6_KEY = 'capsa-tut6';
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* mode privat: jalan tanpa simpanan */ } };
 
 let wallet = normalizeWallet(load(WALLET_KEY), Date.now());
-const settings = { sound: true, ...(load(SET_KEY) || {}) };
+const settings = { sound: true, sixN: 4, mode: '13', ...(load(SET_KEY) || {}) };
+if (settings.mode !== '6') settings.mode = '13';
+if (!validPlayers(settings.sixN)) settings.sixN = 4;
 setSound(settings.sound);
 const saveWallet = () => save(WALLET_KEY, wallet);
 saveWallet();
@@ -102,6 +120,23 @@ function renderLobby() {
       <span class="chip" style="--c:${t.color}"><i>${t.chip}</i></span><span><b>${t.name}</b><small>${need || `min ${fmt(minEntry(t.stake))}`}</small></span></button>`;
   }).join('');
   $('#aiCoinsTag').hidden = $('#lbRanked').hidden;
+  // pilih mode dulu (13 / 6 kartu), baru mejanya
+  const six = settings.mode === '6';
+  $('#m13').hidden = six;
+  $('#m6').hidden = !six;
+  for (const b of document.querySelectorAll('#modePick .mode-b')) {
+    const on = b.dataset.mode === settings.mode;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  }
+  // Capsa 6 kartu: pilih jumlah pemain, lalu meja (koin sama dengan meja lawan AI)
+  $('#sixPlayers').innerHTML = Array.from({ length: SIX.maxPlayers - SIX.minPlayers + 1 }, (_, k) => {
+    const n = SIX.minPlayers + k;
+    return `<button class="seg-b${n === settings.sixN ? ' on' : ''}" data-n="${n}" type="button" aria-pressed="${n === settings.sixN}">${n}</button>`;
+  }).join('');
+  const low = RANKS[13 - sixRankCount(settings.sixN)];
+  $('#sixInfo').textContent = `${settings.sixN} pemain · kartu A sampai ${low}`;
+  $('#sixTables').innerHTML = $('#tables').innerHTML.replaceAll('data-stake=', 'data-six=');
   const sb = $('#btnSound');
   sb.textContent = `Suara: ${settings.sound ? 'nyala' : 'mati'}`;
   sb.setAttribute('aria-pressed', String(settings.sound));
@@ -169,6 +204,31 @@ $('#tables').addEventListener('click', (e) => {
   if (!load(TUT_KEY)) return showTutorial(() => enterTable(stake));
   enterTable(stake);
 });
+$('#modePick').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mode]');
+  if (!b || b.dataset.mode === settings.mode) return;
+  settings.mode = b.dataset.mode;
+  save(SET_KEY, settings);
+  sfx('tap');
+  renderLobby();
+});
+$('#sixPlayers').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-n]');
+  if (!b) return;
+  settings.sixN = Number(b.dataset.n);
+  save(SET_KEY, settings);
+  sfx('tap');
+  renderLobby();
+});
+$('#sixTables').addEventListener('click', (e) => {
+  const b = e.target.closest('.tbl');
+  if (!b) return;
+  const stake = Number(b.dataset.six), n = settings.sixN;
+  if (stake > 0 && wallet.coins < minEntry(stake)) { sfx('bad'); toast(`Meja ${stake} butuh saldo minimal ${fmt(minEntry(stake))} koin`); return; }
+  sfx('tap');
+  if (!load(TUT6_KEY)) return showTutorial6(() => enterTable(stake, null, n));
+  enterTable(stake, null, n);
+});
 $('#btnInstall').addEventListener('click', async () => {
   const hint = await installApp();
   if (hint) modal(`<h2>Pasang Capsa Kung2</h2><p>${esc(hint)}</p><div class="rs-btns"><button class="btn primary" data-a="ok" type="button">Oke</button></div>`).onclick = (e) => {
@@ -197,6 +257,32 @@ function showTutorial(then) {
     m.onclick = null;
     closeModal();
     save(TUT_KEY, 1);
+    then();
+  };
+}
+// urutan lambang (SVG, bukan karakter ♠♥ yang di Android bisa jadi emoji)
+const suitIcon = (k) => `<svg class="su-i${k === 0 || k === 2 ? ' red' : ''}" viewBox="0 0 24 24" aria-hidden="true"><use href="#su${k}"/></svg>`;
+const SUIT_ORDER = `<span class="su-order" aria-label="sekop, hati, keriting, wajik">${[3, 2, 1, 0].map(suitIcon).join(' &gt; ')}</span>`;
+/** Cara main Capsa 6 kartu, muncul sekali sebelum meja 6 kartu pertama. */
+function showTutorial6(then) {
+  const ex = { top: parseCards('As'), mid: parseCards('Kh Kd'), bot: parseCards('Qs Js 10s') };
+  const m = modal(`<h2>Capsa 6 kartu</h2>
+    <div class="tut">
+      <div class="tut-hand">${ROWS.map((r) => `<div class="tut-row"><span>${ROW_NAMES[r]}<small>${sixCatName(evalSix(ex[r], 3))}</small></span><div class="hrow" data-r="${r}"></div></div>`).join('')}</div>
+      <ol>
+        <li>Tiap pemain dapat <b>6 kartu</b>, susun jadi Atas 1, Tengah 2, Bawah 3. Bawah harus paling kuat.</li>
+        <li>Kartu yang dipakai dari As ke bawah, sesuai jumlah pemain (3 pemain: A sampai 10).</li>
+        <li>Urutan Bawah: Kartu Tinggi &lt; Pair &lt; Straight &lt; <b>Flush</b> &lt; Tris &lt; Straight Flush &lt; Royal. Nilai sama? <b>Lambang</b> yang menentukan: ${SUIT_ORDER}.</li>
+        <li>Menang baris +1. Bonus: pair As di Tengah +1, Tris di Bawah +3, Straight Flush +5, Royal +7. Tembus = ×2.</li>
+      </ol>
+    </div>
+    <div class="rs-btns"><button class="btn primary" data-a="go" type="button">Mulai main</button></div>`);
+  for (const r of ROWS) $(`.hrow[data-r="${r}"]`, m).append(...ex[r].map((c) => cardEl(c, 'mini')));
+  m.onclick = (e) => {
+    if (!e.target.closest('[data-a]')) return;
+    m.onclick = null;
+    closeModal();
+    save(TUT6_KEY, 1);
     then();
   };
 }
@@ -229,6 +315,14 @@ $('#btnRules').addEventListener('click', () => {
     <h3>Koin</h3>
     <p>Poin bersih dikali taruhan meja (5, 10, atau 20 koin per poin). Saldo awal ${fmt(START_COINS)}. Masuk meja 5 butuh ${fmt(minEntry(5))} koin,
     meja 10 butuh ${fmt(minEntry(10))}, meja 20 butuh ${fmt(minEntry(20))}. Kalau koin habis, saldo diisi lagi besok jam 00.01 WIB.</p>
+    <h3>Capsa 6 kartu (lawan AI, 3–8 pemain)</h3>
+    <p>Tiap pemain dapat 6 kartu, disusun <b>Atas 1</b>, <b>Tengah 2</b>, <b>Bawah 3</b> (Bawah ≥ Tengah ≥ Atas). Kartu diambil dari As ke bawah
+    sebanyak yang perlu: 3 pemain A–10 (2 kartu tidak dibagi), 4 pemain A–9, 5 pemain A–7, 6 pemain A–6, 7 pemain A–4, 8 pemain A–3.</p>
+    <ul><li>Urutan: Kartu Tinggi &lt; Pair &lt; Straight &lt; Flush &lt; Tris &lt; Straight Flush &lt; Royal (A-K-Q satu lambang).
+    As selalu kartu tertinggi (A-10-J bukan straight).</li>
+    <li>Nilai sama ditentukan <b>lambang</b>: ${SUIT_ORDER} — tidak ada seri.</li>
+    <li>Menang baris <b>+1</b>. Bonus: Tengah pair As <b>+1</b>; Bawah Tris <b>+3</b>, Straight Flush <b>+5</b>, Royal <b>+7</b>.</li>
+    <li>Tembus <b>×2</b>. Tembus keliling (×2 lagi) hanya di meja 3–4 pemain. Tidak ada kartu spesial.</li></ul>
     <div class="rs-btns"><button class="btn primary" data-a="ok" type="button">Mengerti</button></div>`);
   m.onclick = (e) => { if (e.target === m || e.target.closest('[data-a]')) { m.onclick = null; closeModal(); } };
 });
@@ -242,28 +336,57 @@ function myAvatar() {
 }
 let G = null; // { stake, gen, seats:[{name,color,coins,isMe}], round }
 const seatEl = (i) => $(`.seat[data-seat="${i}"]`);
+const others = () => G.seats.map((_, i) => i).slice(1);
 
 /** saved = ronde yang belum selesai (ROUND_KEY): lawan & kartunya sama seperti saat ditinggal. */
-function enterTable(stake, saved = null) {
+function enterTable(stake, saved = null, six = 0) {
   const mine = myAvatar();
   const unit = stake || 5;
+  const v = six ? sixVariant(six) : V13;
   G = {
-    mode: 'solo', stake, gen: 0, round: null, fast: false,
+    mode: 'solo', stake, gen: 0, round: null, fast: false, v,
     seats: [
       { name: 'Kamu', avatar: mine, isMe: true },
-      ...(saved ? saved.seats : pickBots(3, [mine], Math.random).map((b) => ({ ...b, coins: unit * (300 + Math.floor(Math.random() * 1700)) }))),
+      ...(saved ? saved.seats : pickBots(v.n - 1, [mine], Math.random).map((b) => ({ ...b, coins: unit * (300 + Math.floor(Math.random() * 1700)) }))),
     ],
   };
+  if (six) sixStrength(six); // tabel AI dibuat sekali per jumlah pemain (±0,1 dtk)
   show('table');
   $('#table').classList.remove('online');
-  $('#tbInfo').innerHTML = stake ? `Meja <b>${stake}</b> koin / poin` : 'Meja <b>Latihan</b> · tanpa koin';
+  $('#table').classList.toggle('six', !!six);
+  $('#tbInfo').innerHTML = six ? `${stake ? `Meja <b>${stake}</b>` : '<b>Latihan</b>'} · 6 kartu`
+    : stake ? `Meja <b>${stake}</b> koin / poin` : 'Meja <b>Latihan</b> · tanpa koin';
   buildSeats();
   renderCoins();
   startRound(saved);
 }
+/** Kursi dibuat ulang tiap masuk meja: 4 kursi tetap (13 kartu / online) atau 3–8 kursi melingkar (6 kartu). */
 function buildSeats() {
+  const table = $('#table');
+  table.querySelectorAll('.seat').forEach((el) => el.remove());
+  const n = G.seats.length, six = !!G.v.six;
   G.seats.forEach((s, i) => {
-    seatEl(i).className = `seat s${i}`;
+    const el = document.createElement('div');
+    el.dataset.seat = i;
+    el.className = six && i > 0 ? 'seat sx' : `seat s${i}`;
+    if (six && i > 0) {
+      // urutan kursi searah jarum jam dari pemain: kiri → atas → kanan
+      const m = n - 1, k = i - 1;
+      // landscape: 3+ lawan = satu di kiri, satu di kanan, sisanya berjajar di atas
+      const sides = m >= 3, row = sides ? m - 2 : m, j = sides ? k - 1 : k;
+      const [lx, ly] = sides && k === 0 ? [8, 56] : sides && k === m - 1 ? [92, 56] : [15 + ((j + 0.5) * 70) / row, 23];
+      // portrait: kolom kiri (bawah → atas), deret atas, kolom kanan (atas → bawah)
+      const col = Math.floor((m - 1) / 2), top = m - 2 * col;
+      const ys = [[], [44], [54, 34], [58, 42, 26]][col], topY = [25, 22, 16, 11][col];
+      const [px, py] = k < col ? [18, ys[k]] : k >= col + top ? [82, ys[m - 1 - k]] : [50 + (k - col + 0.5 - top / 2) * 34, topY];
+      const pos = { '--lx': lx, '--ly': ly, '--px': px, '--py': py };
+      for (const [key, val] of Object.entries(pos)) el.style.setProperty(key, val.toFixed(1) + '%');
+      el.classList.toggle('rl', lx > 80); // kursi di kanan: poin di kiri kartu supaya tidak keluar layar
+      el.classList.toggle('rp', px > 80);
+    }
+    table.insertBefore(el, $('#center'));
+  });
+  G.seats.forEach((s, i) => {
     seatEl(i).innerHTML = `<div class="who"><div class="ava"><img src="${avatarSrc(s.avatar)}" alt="" draggable="false"></div>
       <div class="nm"><b>${esc(s.name)}</b><span class="coins"><i class="coin"></i> <span data-coins></span></span></div></div>
       <div class="handwrap"><div class="hand"><div class="hrow"></div><div class="hrow"></div><div class="hrow"></div></div><div class="cap"></div><div class="tag"></div></div>
@@ -292,7 +415,7 @@ function leaveTable() {
       for (const ms of [25000, 80000]) setTimeout(() => { if (!G) refreshAccount(); }, ms);
     }
   }
-  $('#table').classList.remove('online', 'ranked');
+  $('#table').classList.remove('online', 'ranked', 'six');
   G = null;
   save(ROUND_KEY, null);
   $('#arrange').hidden = true;
@@ -303,21 +426,25 @@ function leaveTable() {
 }
 
 /** Gambar tangan satu kursi. rows = {top,mid,bot} | null (tertutup semua); open = [atas,tengah,bawah] sudah dibuka? */
+/** Baris yang dapat bonus (mis. pair As di tengah, tris / straight flush di bawah) dibuat bersinar. */
+const shines = (row, cards) => cards?.length === G.v.sizes[ROWS.indexOf(row)] && G.v.bonus(row, G.v.ev(cards)) > 0;
 function renderHand(i, rows, open = [false, false, false], anim = '') {
   const els = seatEl(i).querySelectorAll('.hrow');
   ROWS.forEach((r, k) => {
-    const n = k === 0 ? 3 : 5;
+    const n = G.v.sizes[k];
     const cards = Array.from({ length: n }, (_, j) => {
       const el = rows && open[k] ? cardEl(rows[r][j], 'mini') : backEl('mini');
       if (anim) { el.classList.add(anim); el.style.setProperty('--i', k * 4 + j); }
       return el;
     });
     els[k].replaceChildren(...cards);
+    els[k].classList.toggle('shine', !!(rows && open[k] && shines(r, rows[r])));
   });
 }
 function openRow(i, rows, k) {
   const row = seatEl(i).querySelectorAll('.hrow')[k];
   row.replaceChildren(...rows[ROWS[k]].map((c) => { const el = cardEl(c, 'mini'); el.classList.add('flip'); return el; }));
+  row.classList.toggle('shine', shines(ROWS[k], rows[ROWS[k]]));
 }
 const setCap = (i, text, special = false) => { const c = $('.cap', seatEl(i)); c.textContent = text; c.classList.toggle('special', special); };
 const setTag = (i, text, think = false) => { const t = $('.tag', seatEl(i)); t.textContent = text; t.classList.toggle('think', think); };
@@ -329,7 +456,7 @@ function setPts(i, n, showZero = true) {
   p.className = `pts ${n ? cls(n) : ''}${p.classList.contains('pop') ? ' pop' : ''}`;
 }
 const markRow = (k) => {
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < G.seats.length; i++) {
     seatEl(i).querySelectorAll('.hrow').forEach((r, j) => r.classList.toggle('now', j === k));
     $('.hand', seatEl(i)).classList.toggle('dim', k >= 0);
   }
@@ -350,14 +477,16 @@ function saveRound() {
   const R = G?.round;
   if (!R || G.mode === 'online' || (R.phase !== 'arrange' && R.phase !== 'wait')) return; // meja online disimpan server
   save(ROUND_KEY, {
-    v: 1, stake: G.stake, seed: R.seed, deadlineAt: R.deadlineAt, slots: A.slots,
+    v: 1, stake: G.stake, six: G.v.six, seed: R.seed, deadlineAt: R.deadlineAt, slots: A.slots,
     seats: G.seats.slice(1).map(({ name, avatar, coins }) => ({ name, avatar, coins })),
   });
 }
 function loadRound() {
   const sv = load(ROUND_KEY);
+  const six = sv?.six || 0;
   const ok = sv && sv.v === 1 && [0, ...STAKES].includes(sv.stake) && Number.isInteger(sv.seed) && Number.isFinite(sv.deadlineAt)
-    && Array.isArray(sv.seats) && sv.seats.length === 3
+    && (six === 0 || validPlayers(six))
+    && Array.isArray(sv.seats) && sv.seats.length === (six || 4) - 1
     && sv.seats.every((b) => b && typeof b.name === 'string' && clampAvatar(b.avatar) !== null && Number.isFinite(b.coins));
   return ok ? sv : null;
 }
@@ -371,23 +500,24 @@ async function startRound(saved = null) {
   const rng = mulberry32(seed);
   const R = (G.round = {
     phase: 'deal', seed, deadlineAt: 0, botTimers: [], tick: 0, deadline: 0, result: null,
-    players: deal(rng).map((cards) => ({ cards, special: detectSpecial(cards), rows: null, declared: false, ready: false })),
+    players: G.v.deal(rng).map((cards) => ({ cards, special: G.v.special(cards), rows: null, declared: false, ready: false })),
   });
   $('#result').hidden = true;
   $('#arrange').hidden = true;
   $('#center').replaceChildren();
   markRow(-1);
-  for (let i = 0; i < 4; i++) { renderHand(i, null, undefined, 'dealt'); setCap(i, ''); setTag(i, ''); setPts(i, null); }
+  for (let i = 0; i < G.seats.length; i++) { renderHand(i, null, undefined, 'dealt'); setCap(i, ''); setTag(i, ''); setPts(i, null); }
   sfx('deal');
   await sleep(750);
   if (stale(gen)) return;
 
   R.phase = 'arrange';
-  for (let i = 1; i < 4; i++) {
+  const pace = G.v.secs / ARRANGE_SECONDS; // meja 6 kartu waktunya lebih pendek, bot juga lebih cepat
+  for (const i of others()) {
     setTag(i, 'Menyusun…', true);
-    R.botTimers[i] = setTimeout(() => botReady(i), 3000 + Math.random() * 11000);
+    R.botTimers[i] = setTimeout(() => botReady(i), (3000 + Math.random() * 11000) * pace);
   }
-  R.deadlineAt = saved ? saved.deadlineAt : Date.now() + ARRANGE_SECONDS * 1000;
+  R.deadlineAt = saved ? saved.deadlineAt : Date.now() + G.v.secs * 1000;
   R.deadline = performance.now() + (R.deadlineAt - Date.now());
   R.tick = setInterval(onTick, 200);
   openArrange(true);
@@ -408,7 +538,7 @@ function botReady(i) {
   const p = R.players[i];
   if (p.special) p.declared = true;
   else {
-    const opts = solve(p.cards);
+    const opts = G.v.solve(p.cards, 3);
     // sesekali ambil pilihan kedua kalau nilainya hampir sama, supaya lawan tidak selalu main "sempurna"
     // (acak dari seed ronde + kursi, supaya ronde yang dilanjutkan hasilnya sama)
     const second = opts[1] && opts[0].ev - opts[1].ev < 0.35 && mulberry32(R.seed + i * 7919)() < 0.2;
@@ -428,7 +558,7 @@ function renderOppCount() {
     return;
   }
   const n = R.players.slice(1).filter((p) => p.ready).length;
-  $('#arOpp').textContent = `Lawan siap ${n}/3`;
+  $('#arOpp').textContent = `Lawan siap ${n}/${R.players.length - 1}`;
 }
 
 function onTick() {
@@ -437,7 +567,7 @@ function onTick() {
   const left = Math.max(0, R.deadline - performance.now());
   const sec = Math.ceil(left / 1000);
   for (const t of document.querySelectorAll('.timer')) {
-    t.style.setProperty('--p', left / (ARRANGE_SECONDS * 1000));
+    t.style.setProperty('--p', left / (G.v.secs * 1000));
     t.firstElementChild.textContent = sec;
     t.classList.toggle('low', sec <= 5);
   }
@@ -467,7 +597,7 @@ function timeUp() {
     const ok = commitMine(true);
     toast(ok === 'auto' ? 'Waktu habis — kartu disusun otomatis' : 'Waktu habis');
   }
-  for (let i = 1; i < 4; i++) { clearTimeout(R.botTimers[i]); botReady(i); }
+  for (const i of others()) { clearTimeout(R.botTimers[i]); botReady(i); }
   checkAllReady();
 }
 function checkAllReady() {
@@ -478,16 +608,21 @@ function checkAllReady() {
 
 // ---------- layar susun ----------
 const A = { slots: [], sel: -1, hints: null, hintIdx: -1, sortMode: 0, drag: null, note: '' };
-const ROW_RANGE = { top: [0, 3], mid: [3, 8], bot: [8, 13] };
-const rowsOf = (slots) => ({ top: slots.slice(0, 3), mid: slots.slice(3, 8), bot: slots.slice(8, 13) });
+/** Batas slot tiap baris: 13 kartu {top:[0,3], mid:[3,8], bot:[8,13]}, 6 kartu {top:[0,1], mid:[1,3], bot:[3,6]}. */
+function rowRange() {
+  const [t, m, b] = G.v.sizes;
+  return { top: [0, t], mid: [t, t + m], bot: [t + m, t + m + b] };
+}
+const rowsOf = (slots) => Object.fromEntries(Object.entries(rowRange()).map(([r, [a, b]]) => [r, slots.slice(a, b)]));
 const flat = (r) => [...r.top, ...r.mid, ...r.bot];
+/** Kartu urut dari kuat → bawah diisi dulu, lalu tengah, sisanya atas. */
+const fillRows = (s) => { const [, m, b] = G.v.sizes; return flat({ bot: s.slice(0, b), mid: s.slice(b, b + m), top: s.slice(b + m) }); };
 const byRank = (a, b) => rankOf(b) - rankOf(a) || suitOf(b) - suitOf(a);
 
 function openArrange(fresh) {
   const R = G.round, me = R.players[0];
   if (fresh) {
-    const s = [...me.cards].sort(byRank); // awal: urut dari besar — 5 terbesar di bawah
-    A.slots = flat({ bot: s.slice(0, 5), mid: s.slice(5, 10), top: s.slice(10) });
+    A.slots = fillRows([...me.cards].sort(byRank)); // awal: urut dari besar — kartu terbesar di bawah
     A.hints = null; A.hintIdx = -1; A.sortMode = 0; A.note = 'Ketuk dua kartu untuk menukar, atau seret kartu ke kartu lain';
   }
   A.sel = -1;
@@ -500,6 +635,8 @@ function openArrange(fresh) {
     sp.innerHTML = `<span>Kartu spesial: <b>${SPECIAL_NAMES[me.special.type]}</b> — langsung menang, +${me.special.pts} dari tiap lawan</span>
       <button class="btn" id="btnSpecial" type="button">Pakai</button>`;
   }
+  $('#btnSwap').hidden = G.v.sizes[1] !== G.v.sizes[2]; // tukar tengah-bawah hanya kalau ukurannya sama
+  $('#arrange').classList.toggle('six', !!G.v.six);
   $('#arrange').hidden = false;
   renderArrange(false);
   renderOppCount();
@@ -510,7 +647,7 @@ function renderArrange(animate = true) {
   const before = new Map();
   if (animate) for (const el of box.querySelectorAll('.card')) before.set(el.dataset.c, el.getBoundingClientRect());
   const have = new Map([...box.querySelectorAll('.card')].map((el) => [Number(el.dataset.c), el]));
-  for (const [row, [from, to]] of Object.entries(ROW_RANGE)) {
+  for (const [row, [from, to]] of Object.entries(rowRange())) {
     const wrap = $(`.arow[data-row="${row}"] .acards`, box);
     const els = A.slots.slice(from, to).map((c) => have.get(c) || cardEl(c, 'big'));
     wrap.replaceChildren(...els);
@@ -532,13 +669,14 @@ function renderArrange(animate = true) {
   }
   // label tiap baris + cek urutan
   const r = rowsOf(A.slots);
-  const v = ROWS.map((row) => evalRow(r[row]));
+  const v = ROWS.map((row) => G.v.ev(r[row]));
   const bad = [v[0] > v[1], v[0] > v[1] || v[1] > v[2], v[1] > v[2]];
   ROWS.forEach((row, k) => {
     const el = $(`.arow[data-row="${row}"]`, box);
     el.classList.toggle('bad', bad[k]);
-    const bonus = rowBonus(row, v[k]);
-    $('.alabel', el).innerHTML = `<span class="rn">${ROW_NAMES[row]}</span><span class="hn">${catName(v[k])}</span>${bonus ? `<span class="bn">bonus +${bonus}</span>` : ''}`;
+    const bonus = G.v.bonus(row, v[k]);
+    el.classList.toggle('shine', bonus > 0 && !bad[k]);
+    $('.alabel', el).innerHTML = `<span class="rn">${ROW_NAMES[row]}</span><span class="hn">${G.v.cat(v[k])}</span>${bonus ? `<span class="bn">bonus +${bonus}</span>` : ''}`;
   });
   const invalid = bad.some(Boolean);
   const msg = $('#arMsg');
@@ -550,7 +688,7 @@ function renderArrange(animate = true) {
 }
 
 /** Rapikan urutan kartu di dalam tiap baris (kembar berdampingan). */
-function tidy() { A.slots = flat(Object.fromEntries(ROWS.map((r) => [r, orderRow(rowsOf(A.slots)[r])]))); }
+function tidy() { A.slots = flat(Object.fromEntries(ROWS.map((r) => [r, G.v.order(rowsOf(A.slots)[r])]))); }
 function swapSlots(i, j) {
   if (i === j || i < 0 || j < 0) return;
   [A.slots[i], A.slots[j]] = [A.slots[j], A.slots[i]];
@@ -602,7 +740,7 @@ arBox.addEventListener('pointercancel', endDrag);
 
 $('#btnHint').addEventListener('click', () => {
   const me = G.round.players[0];
-  A.hints ||= solve(me.cards, { keep: 3 });
+  A.hints ||= G.v.solve(me.cards, 3);
   A.hintIdx = (A.hintIdx + 1) % A.hints.length;
   const h = A.hints[A.hintIdx];
   A.slots = flat(h);
@@ -620,7 +758,7 @@ $('#btnSort').addEventListener('click', () => {
     for (const c of A.slots) n[suitOf(c)]++;
     s = [...A.slots].sort((a, b) => n[suitOf(b)] - n[suitOf(a)] || suitOf(b) - suitOf(a) || rankOf(b) - rankOf(a));
   } else s = [...A.slots].sort(byRank);
-  A.slots = flat({ bot: s.slice(0, 5), mid: s.slice(5, 10), top: s.slice(10) });
+  A.slots = fillRows(s);
   A.sel = -1;
   A.note = A.sortMode === 1 ? 'Diurutkan per lambang' : 'Diurutkan per angka';
   sfx('swap');
@@ -656,7 +794,7 @@ function commitMine(force) {
   let how = 'mine';
   if (!renderArrange(false)) {
     if (!force) return null;
-    A.slots = flat(solve(me.cards, { keep: 1 })[0]);
+    A.slots = flat(G.v.solve(me.cards, 1)[0]);
     how = 'auto';
   }
   tidy();
@@ -673,7 +811,7 @@ function afterMineReady() {
   renderHand(0, me.declared ? me.special.rows : me.rows, [true, true, true]);
   setCap(0, me.declared ? `${SPECIAL_NAMES[me.special.type]} +${me.special.pts}` : '', me.declared);
   // lawan (bot) yang belum siap dipercepat supaya tidak lama menunggu
-  for (let i = 1; i < 4 && G.mode !== 'online'; i++) {
+  for (let i = 1; i < R.players.length && G.mode !== 'online'; i++) {
     if (R.players[i].ready) continue;
     clearTimeout(R.botTimers[i]);
     R.botTimers[i] = setTimeout(() => botReady(i), 500 + Math.random() * 1300);
@@ -704,14 +842,14 @@ function settle() {
   const R = G.round;
   clearRoundTimers(R);
   save(ROUND_KEY, null);
-  const res = scoreRound(R.players.map((p) => (p.declared ? { special: p.special } : { rows: p.rows })));
+  const res = scoreRound(R.players.map((p) => (p.declared ? { special: p.special } : { rows: p.rows })), G.v.rules);
   const deltas = res.net.map((n) => coinDelta(n, G.stake));
   if (G.stake) {
     const beforeCoins = wallet.coins;
     wallet.coins = applyDelta(wallet.coins, deltas[0]);
     deltas[0] = wallet.coins - beforeCoins; // saldo tidak bisa minus
     saveWallet();
-    for (let i = 1; i < 4; i++) {
+    for (const i of others()) {
       const s = G.seats[i];
       s.coins = applyDelta(s.coins, deltas[i]);
       if (s.coins < minEntry(G.stake)) s.coins += G.stake * 1000; // lawan isi ulang
@@ -730,16 +868,39 @@ function banner(html, gold = false) {
   $('#center').innerHTML = `<div class="banner${gold ? ' gold' : ''}">${html}</div><div class="skiphint">ketuk meja untuk percepat</div>`;
 }
 
+/** Tembus keliling: layar besar seperti "Hu besar" di Mahjong (tulisan meletup, sinar emas, gong, HP bergetar). */
+async function bigWin(who) {
+  const me = who === 0;
+  const s = G.seats[who];
+  const el = document.createElement('div');
+  el.className = `bigwin${me ? ' mine' : ''}`;
+  el.innerHTML = `<div class="bw-rays"></div><div class="bw-box">
+    <div class="bw-ava"><img src="${avatarSrc(s.avatar)}" alt=""></div>
+    <div class="bw-title">TEMBUS<br>KELILING!</div>
+    <div class="bw-sub">${me ? 'Kamu' : esc(s.name)} tembus semua lawan · poin ×4</div></div>`;
+  $('#center').replaceChildren();
+  $('#table').append(el);
+  seatEl(who).classList.add('glow');
+  sfx('sweep');
+  if (me) try { navigator.vibrate?.([60, 80, 60, 80, 160]); } catch { /* tanpa getar */ }
+  await pause(2600);
+  el.classList.add('out');
+  await sleep(250);
+  el.remove();
+  seatEl(who)?.classList.remove('glow');
+}
+
 async function showdown() {
   const gen = G.gen, R = G.round;
   R.phase = 'show';
   $('#arrange').hidden = true;
   const { res, deltas } = settle();
   const P = R.players;
-  const run = [0, 0, 0, 0];
+  const N = P.length;
+  const run = new Array(N).fill(0);
   const push = () => run.forEach((n, i) => setPts(i, n));
 
-  for (let i = 0; i < 4; i++) { renderHand(i, null); setTag(i, ''); setCap(i, ''); }
+  for (let i = 0; i < N; i++) { renderHand(i, null); setTag(i, ''); setCap(i, ''); }
   banner('Buka kartu!');
   await pause(650);
   if (stale(gen)) return;
@@ -765,31 +926,29 @@ async function showdown() {
     banner(`Baris ${ROW_NAMES[ROWS[k]]}`);
     markRow(k);
     sfx('flip');
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < N; i++) {
       if (P[i].declared) continue;
       openRow(i, P[i].rows, k);
-      const bonus = rowBonus(ROWS[k], res.values[i][k]);
-      setCap(i, catName(res.values[i][k]) + (bonus ? ` (bonus +${bonus})` : ''));
+      const bonus = G.v.bonus(ROWS[k], res.values[i][k]);
+      setCap(i, G.v.cat(res.values[i][k]) + (bonus ? ` (bonus +${bonus})` : ''), bonus > 0);
     }
     await pause(750);
     if (stale(gen)) return;
-    for (let i = 0; i < 4; i++) run[i] += res.rowTotals[i][k];
+    for (let i = 0; i < N; i++) run[i] += res.rowTotals[i][k];
     push();
     await pause(1250);
     if (stale(gen)) return;
   }
   markRow(-1);
-  for (let i = 0; i < 4; i++) if (!P[i].declared) setCap(i, '');
+  for (let i = 0; i < N; i++) if (!P[i].declared) setCap(i, '');
 
   // tembus & tembus keliling
   const name = (i) => (i === 0 ? 'Kamu' : esc(G.seats[i].name));
   const extra = (d) => { run[d.a] += d.total - d.base; run[d.b] -= d.total - d.base; };
   if (res.sweep >= 0) {
     for (const d of res.duels) if (d.scoop && (d.scoop === 1 ? d.a : d.b) === res.sweep) extra(d);
-    banner(`${name(res.sweep)} TEMBUS KELILING!<small>semua poinnya ×4</small>`, true);
-    sfx('scoop');
     push();
-    await pause(1900);
+    await bigWin(res.sweep);
     if (stale(gen)) return;
   }
   for (const d of res.duels) {
@@ -816,7 +975,7 @@ function showResult(res, deltas) {
   sfx(net > 0 ? 'win' : net < 0 ? 'lose' : 'tap');
   $('#center').replaceChildren();
   const cell = (n) => `<td class="${cls(n)}">${n === 0 ? '0' : signed(n)}</td>`;
-  const rows = [1, 2, 3].map((o) => {
+  const rows = others().map((o) => {
     const d = duelFor(res, 0, o);
     const who = `<td>${esc(G.seats[o].name)}</td>`;
     if (d.special) {
@@ -829,7 +988,7 @@ function showResult(res, deltas) {
   const sweepNote = res.sweep === 0 ? 'Kamu tembus keliling — semua poin ×4!' : res.sweep > 0 ? `${esc(G.seats[res.sweep].name)} tembus keliling.` : '';
   const coins = G.mode === 'online' && O?.ranked ? ' · <span id="rsCoins"></span>'
     : G.stake ? ` · <span class="${cls(deltas[0])}"><i class="coin"></i> ${deltas[0] === 0 ? '0' : signed(deltas[0])}</span>` : '';
-  const others = [1, 2, 3].map((i) => `<span>${esc(G.seats[i].name)} <b class="${cls(res.net[i])}">${res.net[i] === 0 ? '0' : signed(res.net[i])}</b></span>`).join('');
+  const all = others().map((i) => `<span>${esc(G.seats[i].name)} <b class="${cls(res.net[i])}">${res.net[i] === 0 ? '0' : signed(res.net[i])}</b></span>`).join('');
   const online = G.mode === 'online';
   const totals = online ? `<p class="rs-total">Total di meja ini: ${G.seats.map((s) => `${esc(s.name)} <b>${signed(s.total)}</b>`).join(' · ')}</p>` : '';
   const again = online ? '<button class="btn primary" id="btnAgain" type="button"></button>' : '<button class="btn primary" id="btnAgain" type="button">Main lagi</button>';
@@ -839,7 +998,7 @@ function showResult(res, deltas) {
       <div class="rs-sum"><span class="${cls(net)}">${net === 0 ? '0' : signed(net)} poin</span>${coins}</div></div>
     <table class="rs-table"><thead><tr><th>Lawan</th><th>Atas</th><th>Tengah</th><th>Bawah</th><th>Tembus</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>
     ${sweepNote ? `<p class="rs-note">${sweepNote}</p>` : ''}
-    <div class="rs-all">${others}</div>${totals}
+    <div class="rs-all">${all}</div>${totals}
     <div class="rs-btns"><button class="btn" id="btnExit" type="button">Keluar</button><button class="btn" id="btnPeek" type="button">Lihat meja</button>${again}</div></div>`;
   el.hidden = false;
   if (online) renderOnlineResultButtons();
@@ -885,8 +1044,8 @@ $('#btnLeave').addEventListener('click', async () => {
     if (!yes || G?.round !== R) return;
     if (G.stake && (R.phase === 'arrange' || R.phase === 'wait')) {
       const me = R.players[0];
-      if (!me.ready) { me.rows = solve(me.cards, { keep: 1 })[0]; me.ready = true; }
-      for (let i = 1; i < 4; i++) { clearTimeout(R.botTimers[i]); botReady.call(null, i); }
+      if (!me.ready) { me.rows = G.v.solve(me.cards, 1)[0]; me.ready = true; }
+      for (const i of others()) { clearTimeout(R.botTimers[i]); botReady.call(null, i); }
       // botReady → checkAllReady sudah memulai showdown (settle); kalau belum, selesaikan di sini
       const d = (R.result || settle()).deltas[0];
       toast(`Ronde diselesaikan otomatis: ${d === 0 ? '0' : signed(d)} koin`, 3200);
@@ -1006,7 +1165,7 @@ function onOnlineState(v, serverNow) {
   O.spect = v.seat < 0; // Ranked: sudah pesan kursi tapi ronde sedang jalan, masuk di ronde berikutnya
   if (serverNow) O.offset = serverNow - Date.now();
   if (!G || G.mode !== 'online') {
-    G = { mode: 'online', stake: 0, gen: 0, round: null, fast: false, seats: [0, 1, 2, 3].map((d) => ({ name: '', avatar: 0, isMe: d === 0 })) };
+    G = { mode: 'online', stake: 0, gen: 0, round: null, fast: false, v: V13, seats: [0, 1, 2, 3].map((d) => ({ name: '', avatar: 0, isMe: d === 0 })) };
     closeModal();
     show('table');
     $('#table').classList.add('online');
@@ -1251,7 +1410,7 @@ installErrorLog(() => bootVersion);
 }
 {
   const sv = loadRound();
-  if (sv) enterTable(sv.stake, sv);
+  if (sv) enterTable(sv.stake, sv, sv.six || 0);
 }
 onlineConfig().then((cfg) => {
   onlineOn = cfg.online;

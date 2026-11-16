@@ -18,3 +18,18 @@ export const SCOOP_MULT = 2; // tembus: menang 3 baris dari satu lawan
 export const SWEEP_MULT = 2; // tembus keliling: tembus ke 3 lawan sekaligus (dikali lagi)
 
 export const ARRANGE_SECONDS = 60;
+
+// ---------- Capsa 6 kartu (susun 1-2-3, 3–8 pemain) ----------
+/** Kategori 6 kartu: baris paling banyak 3 kartu, jadi urutannya ikut peluang di dek pendek (flush lebih jarang dari straight). */
+export const SIX_CAT = { HIGH: 0, PAIR: 1, STRAIGHT: 2, FLUSH: 3, TRIPS: 4, STRAIGHT_FLUSH: 5, ROYAL: 6 };
+export const SIX = {
+  sizes: [1, 2, 3], // atas, tengah, bawah
+  minPlayers: 3,
+  maxPlayers: 8,
+  seconds: 30,
+  // bonus kalau baris itu MENANG (ditambah ke 1 poin menang baris); tengah: hanya pair As
+  bonus: { top: {}, mid: { pairAce: 1 }, bot: { [SIX_CAT.TRIPS]: 3, [SIX_CAT.STRAIGHT_FLUSH]: 5, [SIX_CAT.ROYAL]: 7 } },
+  scoopMult: 2, // tembus: menang 3 baris dari satu lawan
+  sweepMult: 2, // tembus keliling (×2 lagi) — hanya meja 3–4 pemain
+  sweepMaxPlayers: 4,
+};

@@ -1,6 +1,7 @@
 # capsa — "Capsa Kung2"
 
-Capsa susun 13 kartu di browser: main sendiri vs 3 AI, online bareng teman (tanpa koin), atau Ranked online (koin akun, meja 5/10/20). Saudara dari games-mahjong0hk
+Capsa susun 13 kartu di browser: main sendiri vs 3 AI, online bareng teman (tanpa koin), atau Ranked online (koin akun, meja 5/10/20).
+Plus **Capsa 6 kartu** (susun 1-2-3, 3–8 pemain, hanya lawan AI). Saudara dari games-mahjong0hk
 ("Mahjong Kung2"). Live di https://sylvaniaharco.com/games/capsa/. README menjelaskan aturan & keputusan aturan.
 
 ## Cara kerja dengan Teddy (pemilik)
@@ -33,6 +34,7 @@ Capsa susun 13 kartu di browser: main sendiri vs 3 AI, online bareng teman (tanp
 ```bash
 npm test                 # node --test test/*.test.js
 npm run sim              # simulasi AI vs AI (zero-sum, sebaran poin)
+npm run sim:six          # simulasi Capsa 6 kartu per jumlah pemain 3–8
 npm run calibrate        # bikin ulang src/engine/strength-data.js (±4 menit)
 npm run dev              # static server :8080 (tanpa meja online & akun)
 npm run dev:online       # build + wrangler dev :8787 (meja teman jalan; buka /games/capsa/). Ranked butuh Worker Mahjong juga jalan
@@ -84,7 +86,14 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
 - Ronde yang sedang disusun disimpan di HP (`ROUND_KEY`, `saveRound`/`loadRound` di `src/main.js`): seed kartu, lawan, batas waktu,
   susunan terakhir. Saat boot ronde itu dilanjutkan; kalau waktunya sudah habis langsung diselesaikan. Jadi hasil ronde harus bisa
   dihitung ulang dari seed: keputusan bot jangan memakai `Math.random()` (pakai `mulberry32(R.seed + …)`).
-- Cara main singkat (`showTutorial`) muncul sekali sebelum meja pertama (`TUT_KEY`).
+- Cara main singkat (`showTutorial`) muncul sekali sebelum meja pertama (`TUT_KEY`); Capsa 6 kartu punya sendiri (`showTutorial6`, `TUT6_KEY`).
+- **Capsa 6 kartu** (keputusan Teddy, 16 Nov 2026): engine di `src/engine/six.js`, angka aturan di `SIX`/`SIX_CAT` (`rules.js`), tes
+  `test/six.test.js`. Susun 1-2-3, dek dari As ke bawah `ceil(6n/4)` nilai, flush > straight, As selalu tertinggi (tidak ada straight As-kecil), lambang penentu kalau nilai sama (tidak ada
+  seri), bonus tengah pair As +1, bawah tris +3 / SF +5 / royal +7, tembus keliling hanya ≤4 pemain, tanpa kartu spesial.
+  `scoreRound(players, sixRules(n))` — `scoreRound` menerima aturan (default `CAPSA13`). Tabel AI (`sixStrength`) dibuat saat jalan,
+  bukan lewat `calibrate`. Di `src/main.js` semua bagian meja memakai `G.v` (jenis permainan: `V13` atau `sixVariant(n)`), jumlah kursi
+  = `G.seats.length`; kursi dibuat `buildSeats()` (bukan di HTML). Belum ada versi online/Ranked.
+  Lobi: pilih mode dulu (`#modePick`, 13 / 6 kartu, diingat di `settings.mode`); `#m13` = Ranked + lawan AI + bareng teman, `#m6` = jumlah pemain + meja.
 - Teks UI bahasa Indonesia. Ikon lambang kartu pakai SVG `<symbol>` di `index.html` (bukan karakter ♠♥, yang di Android bisa jadi emoji).
 
 ## PWA
@@ -98,6 +107,10 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
 ## UI yang perlu diingat
 
 - Ukuran kartu dihitung dari `--vw`/`--vh` yang diisi JS dari ukuran `#app` (`fit()` di `src/main.js`); kelas `.portrait` ditambahkan kalau
-  layar tegak. Cek tampilan di HP landscape (915×412) dan portrait (412×915) sebelum merge.
+  layar tegak. Meja 6 kartu (`#table.six`, kursi `.seat.sx`): posisi lawan di `--lx/--ly` (landscape) dan `--px/--py` (portrait) dari
+  `buildSeats()`; cek dengan 8 pemain. Cek tampilan di HP landscape (915×412) dan portrait (412×915) sebelum merge.
 - Elemen yang dianimasikan dengan `transform` jangan diposisikan pakai `transform: translate(-50%, …)` (animasi menimpanya) — pakai wadah grid/flex.
 - Tombol Keluar (`.tb-top`) harus tetap di atas layar susun (`z-index`), supaya pemain bisa keluar saat menyusun.
+- Tembus keliling = layar "Hu besar" (`bigWin()` di `src/main.js`, CSS `.bigwin`, suara `sweep` di `src/ui/sfx.js`, getar kalau pemain sendiri);
+  dipakai semua mode (13/6 kartu, online). Cari seed untuk ngetes: mode 6 kartu 3 pemain `?seed=6` + Saran 1 = kamu tembus keliling.
+- Baris yang dapat bonus bersinar emas (`.shine` di `.hrow` meja & `.arow` layar susun; `shines()` di `src/main.js` = `G.v.bonus > 0`).

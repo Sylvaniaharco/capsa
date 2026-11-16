@@ -113,3 +113,4 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
 - Tombol Keluar (`.tb-top`) harus tetap di atas layar susun (`z-index`), supaya pemain bisa keluar saat menyusun.
 - Tembus keliling = layar "Hu besar" (`bigWin()` di `src/main.js`, CSS `.bigwin`, suara `sweep` di `src/ui/sfx.js`, getar kalau pemain sendiri);
   dipakai semua mode (13/6 kartu, online). Cari seed untuk ngetes: mode 6 kartu 3 pemain `?seed=6` + Saran 1 = kamu tembus keliling.
+- Baris yang dapat bonus bersinar emas (`.shine` di `.hrow` meja & `.arow` layar susun; `shines()` di `src/main.js` = `G.v.bonus > 0`).

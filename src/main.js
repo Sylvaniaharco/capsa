@@ -426,6 +426,8 @@ function leaveTable() {
 }
 
 /** Gambar tangan satu kursi. rows = {top,mid,bot} | null (tertutup semua); open = [atas,tengah,bawah] sudah dibuka? */
+/** Baris yang dapat bonus (mis. pair As di tengah, tris / straight flush di bawah) dibuat bersinar. */
+const shines = (row, cards) => cards?.length === G.v.sizes[ROWS.indexOf(row)] && G.v.bonus(row, G.v.ev(cards)) > 0;
 function renderHand(i, rows, open = [false, false, false], anim = '') {
   const els = seatEl(i).querySelectorAll('.hrow');
   ROWS.forEach((r, k) => {
@@ -436,11 +438,13 @@ function renderHand(i, rows, open = [false, false, false], anim = '') {
       return el;
     });
     els[k].replaceChildren(...cards);
+    els[k].classList.toggle('shine', !!(rows && open[k] && shines(r, rows[r])));
   });
 }
 function openRow(i, rows, k) {
   const row = seatEl(i).querySelectorAll('.hrow')[k];
   row.replaceChildren(...rows[ROWS[k]].map((c) => { const el = cardEl(c, 'mini'); el.classList.add('flip'); return el; }));
+  row.classList.toggle('shine', shines(ROWS[k], rows[ROWS[k]]));
 }
 const setCap = (i, text, special = false) => { const c = $('.cap', seatEl(i)); c.textContent = text; c.classList.toggle('special', special); };
 const setTag = (i, text, think = false) => { const t = $('.tag', seatEl(i)); t.textContent = text; t.classList.toggle('think', think); };
@@ -671,6 +675,7 @@ function renderArrange(animate = true) {
     const el = $(`.arow[data-row="${row}"]`, box);
     el.classList.toggle('bad', bad[k]);
     const bonus = G.v.bonus(row, v[k]);
+    el.classList.toggle('shine', bonus > 0 && !bad[k]);
     $('.alabel', el).innerHTML = `<span class="rn">${ROW_NAMES[row]}</span><span class="hn">${G.v.cat(v[k])}</span>${bonus ? `<span class="bn">bonus +${bonus}</span>` : ''}`;
   });
   const invalid = bad.some(Boolean);
@@ -925,7 +930,7 @@ async function showdown() {
       if (P[i].declared) continue;
       openRow(i, P[i].rows, k);
       const bonus = G.v.bonus(ROWS[k], res.values[i][k]);
-      setCap(i, G.v.cat(res.values[i][k]) + (bonus ? ` (bonus +${bonus})` : ''));
+      setCap(i, G.v.cat(res.values[i][k]) + (bonus ? ` (bonus +${bonus})` : ''), bonus > 0);
     }
     await pause(750);
     if (stale(gen)) return;

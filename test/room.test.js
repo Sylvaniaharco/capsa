@@ -152,3 +152,147 @@ test('pemain keluar saat main: kursinya dimainkan otomatis, host pindah, bisa ke
   fixHost(r, (id) => id === A.id); // B putus
   assert.equal(r.hostId, A.id);
 });
+
+// ---------- Ranked ----------
+import { createRanked, reserve, joinable, seatedUser, rankedDue, startRanked, nextRanked, settlePayload, applySettle, isPending, RANKED_WAIT_MS, RANKED_NEXT_MS, AFK_ROUNDS } from '../src/engine/room.js';
+
+const U = (n, coins = 1000) => ({ key: `kunci${n}kunci${n}`, userId: `g:${n}`, name: `P${n}`, avatar: 4, coins });
+const rankedStarted = (n = 2, stake = 5) => {
+  const r = createRanked('RANKD', stake, T0);
+  for (let i = 1; i <= n; i++) assert.equal(reserve(r, U(i), T0).ok, true);
+  startRanked(r, 11, T0, rnd());
+  return r;
+};
+const playAll = (r, now) => {
+  for (let i = 0; i < 4; i++) if (!r.seats[i].bot && !r.seats[i].left) submit(r, i, detectSpecial(r.hands[i]) ? { special: true } : { rows: quickArrange(r.hands[i]) });
+  finishRound(r, now);
+};
+
+test('Ranked: pesan kursi — saldo minimal, satu akun satu kursi, hitung mundur mulai', () => {
+  const r = createRanked('RANKD', 10, T0);
+  assert.equal(reserve(r, U(1, 4999), T0).ok, false, 'saldo di bawah minimal meja 10');
+  assert.equal(rankedDue(r, T0 + 1000), null);
+  assert.deepEqual(reserve(r, U(1, 6000), T0), { ok: true, key: U(1).key });
+  assert.equal(r.startAt, T0 + RANKED_WAIT_MS);
+  // akun yang sama dari HP lain: dapat kursi yang sama, bukan kursi kedua
+  assert.deepEqual(reserve(r, { ...U(1, 6000), key: 'kuncilainkuncilain' }, T0 + 5), { ok: true, key: U(1).key });
+  assert.equal(r.seats.filter(Boolean).length, 1);
+  assert.deepEqual(seatedUser(r, 'g:1'), { key: U(1).key, left: false });
+  assert.equal(seatedUser(r, 'g:9'), null);
+  assert.equal(rankedDue(r, T0 + RANKED_WAIT_MS - 1), null);
+  assert.equal(rankedDue(r, T0 + RANKED_WAIT_MS), 'start');
+  for (const n of [2, 3, 4]) reserve(r, U(n, 6000), T0 + 10);
+  assert.equal(r.startAt, T0 + 10, '4 pemain: langsung mulai');
+  assert.equal(joinable(r), false);
+  assert.equal(reserve(r, U(5, 6000), T0 + 20).ok, false);
+});
+
+test('Ranked: sambung ke meja hanya dengan kunci kursi; start/next manual ditolak', () => {
+  const r = rankedStarted(1);
+  assert.deepEqual(join(r, { id: U(1).key, name: 'x' }), { ok: true, seat: 0 });
+  assert.equal(join(r, { id: 'bukankuncisaya', name: 'x' }).ok, false);
+  assert.equal(start(r, U(1).key, 1, T0, rnd()).ok, false);
+  finishRound(r, T0);
+  assert.equal(next(r, U(1).key, 1, T0).ok, false);
+});
+
+test('Ranked: view tidak memuat id akun, kunci kursi lawan, atau saldo lawan', () => {
+  const r = rankedStarted(2);
+  r.seats[1].coins = 777123;
+  const v = viewFor(r, 0, () => true, U(1).key);
+  const text = JSON.stringify(v);
+  assert.equal(v.ranked.stake, 5);
+  assert.equal(v.ranked.coins, 1000);
+  for (const secret of ['g:1', 'g:2', U(1).key, U(2).key, '777123']) assert.ok(!text.includes(secret), secret);
+});
+
+test('Ranked: koin per ronde — payload hanya pemain, saldo pasti dari server akun', () => {
+  const r = rankedStarted(2);
+  playAll(r, T0 + 30000);
+  assert.equal(r.nextAt, T0 + 30000 + RANKED_NEXT_MS);
+  assert.deepEqual(r.last.deltas, r.last.net.map((n) => n * 5));
+  assert.equal(r.last.settled, false);
+  const pay = settlePayload(r);
+  assert.equal(pay.gameId, 'RANKD:1');
+  assert.equal(pay.stake, 5);
+  assert.deepEqual(pay.players, [{ userId: 'g:1', net: r.last.net[0] }, { userId: 'g:2', net: r.last.net[1] }]);
+  // server akun: pemain 1 saldonya mentok di 0 (delta lebih kecil dari hitungan)
+  applySettle(r, { 'g:1': { delta: -1000, coins: 0 }, 'g:2': { delta: 15, coins: 1015 } });
+  assert.equal(r.last.settled, true);
+  assert.equal(r.last.deltas[0], -1000);
+  assert.equal(r.seats[0].coins, 0);
+  assert.equal(viewFor(r, 1, () => true, U(2).key).ranked.coins, 1015);
+  assert.equal(rankedDue(r, T0 + 30000 + RANKED_NEXT_MS - 1), null);
+  assert.equal(rankedDue(r, T0 + 30000 + RANKED_NEXT_MS), 'next');
+  // ronde berikutnya: pemain 1 (koin habis) dilepas dan diberi tahu; pemain 2 lanjut
+  const out = nextRanked(r, 12, T0 + 50000, rnd());
+  assert.equal(out.closed, false);
+  assert.match(out.removed[U(1).key], /Koin tidak cukup/);
+  assert.equal(r.seats[0].bot, true);
+  assert.equal(r.totals[0], 0);
+  assert.equal(r.round, 2);
+  assert.equal(new Set(r.seats.map((s) => s.avatar)).size, 4);
+});
+
+test('Ranked: pemain baru saat ronde jalan menunggu, lalu menggantikan bot di ronde berikutnya', () => {
+  const r = rankedStarted(1);
+  assert.equal(joinable(r), true);
+  assert.deepEqual(reserve(r, U(2), T0 + 100), { ok: true, key: U(2).key });
+  assert.ok(isPending(r, U(2).key));
+  assert.deepEqual(join(r, { id: U(2).key, name: 'x' }), { ok: true, seat: -1 });
+  const v = viewFor(r, -1, () => true, U(2).key);
+  assert.equal(v.ranked.waiting, true);
+  assert.equal(v.hand, null, 'yang menunggu tidak dapat kartu');
+  assert.equal(v.ranked.coins, 1000);
+  for (const n of [3, 4]) reserve(r, U(n), T0 + 100);
+  assert.equal(reserve(r, U(5), T0 + 100).ok, false, 'hanya 3 kursi bot yang bisa digantikan');
+  playAll(r, T0 + 20000);
+  applySettle(r, {});
+  const out = nextRanked(r, 13, T0 + 40000, rnd());
+  assert.deepEqual(out.removed, {});
+  assert.equal(r.seats.filter((s) => !s.bot).length, 4);
+  assert.equal(seatOf(r, U(2).key) >= 0, true);
+  assert.equal(r.pending.length, 0);
+  assert.equal(new Set(r.seats.map((s) => s.avatar)).size, 4);
+});
+
+test('Ranked: keluar → kursi dilepas di ronde berikutnya; semua keluar → meja ditutup', () => {
+  const r = rankedStarted(2);
+  leave(r, U(1).key);
+  assert.equal(r.seats[0].left, true);
+  playAll(r, T0 + 20000);
+  assert.equal(settlePayload(r).players.length, 2, 'ronde yang sedang jalan tetap dihitung untuk yang keluar');
+  applySettle(r, {});
+  assert.equal(nextRanked(r, 14, T0 + 40000, rnd()).closed, false);
+  assert.equal(r.seats[0].bot, true);
+  leave(r, U(2).key);
+  finishRound(r, T0 + 60000);
+  const out = nextRanked(r, 15, T0 + 80000, rnd());
+  assert.equal(out.closed, true);
+  assert.equal(r.status, 'closed');
+  assert.equal(joinable(r), false);
+  assert.equal(reserve(r, U(3), T0).ok, false);
+});
+
+test('Ranked: tidak menyusun 2 ronde berturut-turut → dikeluarkan', () => {
+  const r = rankedStarted(2);
+  for (let k = 0; k < AFK_ROUNDS; k++) {
+    submit(r, 1, { rows: quickArrange(r.hands[1]) }); // pemain 2 main, pemain 1 diam
+    finishRound(r, T0 + 70000 * (k + 1));
+    applySettle(r, {});
+    assert.equal(r.seats[0].afk, k + 1);
+    if (k < AFK_ROUNDS - 1) assert.deepEqual(nextRanked(r, 20 + k, T0, rnd()).removed, {});
+  }
+  const out = nextRanked(r, 30, T0, rnd());
+  assert.match(out.removed[U(1).key], /tidak menyusun/);
+  assert.equal(r.seats[0].bot, true);
+  assert.equal(r.seats[1].afk, 0);
+});
+
+test('Ranked: meja tunggu yang ditinggal semua pemain ditutup', () => {
+  const r = createRanked('RANKD', 5, T0);
+  reserve(r, U(1), T0);
+  leave(r, U(1).key);
+  assert.equal(rankedDue(r, T0 + 30000), null);
+  assert.equal(rankedDue(r, T0 + 61000), 'close');
+});

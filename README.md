@@ -40,6 +40,18 @@ menekan **Mulai**. Kursi yang kosong diisi bot. Tanpa login dan **tanpa koin**: 
 - Koneksi putus: game menyambung lagi sendiri; app ditutup lalu dibuka lagi → kembali ke meja yang sama.
 - Keluar di tengah permainan: kursinya dimainkan otomatis. Meja tanpa pemain dihapus setelah 10 menit.
 
+## Ranked (online, koin akun)
+
+Butuh login Google. Pilih meja 5 / 10 / 20 koin per poin (saldo minimal 100 / 5.000 / 10.000, sama dengan Mahjong). Game mencarikan
+meja: kalau ada meja yang masih bisa dimasuki kamu duduk di sana, kalau tidak dibuat meja baru. Permainan mulai 8 detik setelah pemain
+pertama duduk; kursi kosong diisi bot, dan pemain yang datang belakangan menggantikan bot di ronde berikutnya.
+
+- Tiap ronde: koin = poin bersih × taruhan, langsung diselesaikan di server akun (saldo yang sama dengan Mahjong, tidak bisa di bawah 0).
+- Ronde berikutnya jalan sendiri. Keluar kapan saja; ronde yang sedang jalan tetap dihitung (kartu disusun otomatis).
+- Tidak menyusun 2 ronde berturut-turut = dikeluarkan dari meja. Koin di bawah minimal meja = tidak bisa lanjut di meja itu.
+- Satu akun hanya bisa duduk di satu meja Ranked.
+- Belum ada rating, leaderboard, atau bonus harian untuk Capsa.
+
 ## Akun dan koin
 
 Akun jadi satu dengan Mahjong Kung2: tombol **Masuk dengan Google** di lobi memakai login Mahjong (satu domain), dan lobi menampilkan
@@ -47,7 +59,7 @@ nama serta **koin akun** yang sama dengan di Mahjong. Keluar dari akun di Capsa 
 
 Untuk sementara ada dua saldo:
 
-- **Koin akun** (di server, dipakai bersama Mahjong): di Capsa baru ditampilkan, belum dipakai. Nanti dipakai di meja online/Ranked.
+- **Koin akun** (di server, dipakai bersama Mahjong): dipakai di meja Ranked.
 - **Koin meja lawan AI** (di HP, `localStorage`): mengikuti aturan Mahjong — saldo awal 1.000, meja 5 / 10 / 20 koin per poin, saldo
   minimal masuk 100 / 5.000 / 10.000, tidak bisa di bawah 0, dan kalau kurang dari 100 direset ke 1.000 jam 00.01 WIB hari berikutnya.
   Ada juga meja **Latihan** (tanpa koin).
@@ -79,7 +91,8 @@ Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file st
 - `src/engine/` — murni, tanpa DOM: `cards` (kartu + RNG berseed), `hands` (nilai kombinasi), `special` (kartu spesial),
   `rules` (semua angka aturan), `scoring` (poin ronde), `arrange` (pencari susunan terbaik untuk AI & tombol Saran),
   `strength-data` (tabel hasil `npm run calibrate`), `wallet` (koin).
-- `src/engine/room.js` — logika meja online (murni); `worker/` — Worker (`index.js`: API) dan Durable Object meja (`room.js`);
+- `src/engine/room.js` — logika meja online & Ranked (murni); `worker/` — Worker (`index.js`: API), Durable Object meja (`room.js`),
+  dan pencari meja Ranked (`lobby.js`);
   `src/net/online.js` — klien online.
 - `src/engine/roster.js` + `avatars/` — nama & karakter bot, sama dengan Mahjong Kung2 (Dominic, Sebastian, Joy, Elaina, Ellery, Elon,
   Elton, Jason, James, Jordan, KungKung, PoPo).

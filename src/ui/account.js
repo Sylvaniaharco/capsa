@@ -39,6 +39,17 @@ export async function fetchAccount() {
   }
 }
 
+/**
+ * Tiket sekali pakai untuk masuk meja Ranked: server Capsa menukarnya di server akun, jadi id akun & saldo
+ * tidak pernah berasal dari HP. Melempar Error dengan pesan yang bisa ditampilkan.
+ */
+export async function fetchTicket() {
+  const r = await fetch(`${API}/auth/ticket`, { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
+  const d = (r.headers.get('content-type') || '').includes('json') ? await r.json() : {};
+  if (!r.ok || !d.ticket) throw new Error(d.error || 'Server akun tidak menjawab');
+  return d.ticket;
+}
+
 /** Keluar dari akun (berlaku juga di Mahjong Kung2: sesinya sama). */
 export async function logout() {
   try {

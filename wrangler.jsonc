@@ -11,10 +11,19 @@
     "run_worker_first": ["/games/capsa/api/*"]
   },
   "routes": [{ "pattern": "sylvaniaharco.com/games/capsa*", "zone_name": "sylvaniaharco.com" }],
-  // Meja online: satu Durable Object per kode meja (SQLite bawaan)
+  // Meja online: satu Durable Object per kode meja (SQLite bawaan); pencari meja Ranked: satu global
   "durable_objects": {
-    "bindings": [{ "name": "ROOMS", "class_name": "CapsaRoom" }]
+    "bindings": [
+      { "name": "ROOMS", "class_name": "CapsaRoom" },
+      { "name": "LOBBY", "class_name": "CapsaLobby" }
+    ]
   },
+  // Akun & koin ada di Worker Mahjong. Ranked memanggilnya lewat service binding ke entrypoint CapsaGate
+  // (tukar tiket jadi data pemain, selesaikan koin per ronde). Worker Mahjong harus sudah ter-deploy dengan CapsaGate.
+  "services": [{ "binding": "MAHJONG", "service": "games-mahjong0hk", "entrypoint": "CapsaGate" }],
   // Tambah class DO baru = tambah tag migrasi baru, jangan ubah yang lama.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CapsaRoom"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["CapsaRoom"] },
+    { "tag": "v2", "new_sqlite_classes": ["CapsaLobby"] }
+  ]
 }

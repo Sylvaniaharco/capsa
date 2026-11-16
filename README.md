@@ -62,7 +62,7 @@ Kartu diambil dari As ke bawah sebanyak `ceil(6 × pemain / 4)` nilai; sisanya t
   (termasuk kicker), baru lambang kartu tertinggi.
 - Tidak ada kartu spesial. Bonus dibayar hanya kalau baris itu menang dan ikut dikali tembus.
 - AI: semua 60 cara susun dicoba, dinilai dari peluang menang tiap baris (sebaran dibuat saat pertama main per jumlah pemain, berseed tetap).
-- Belum ada versi online/Ranked untuk mode ini.
+- Ranked (koin akun) tersedia juga untuk 6 kartu, lihat bagian Ranked. Belum ada meja online bareng teman untuk 6 kartu.
 
 ## Main bareng teman (online)
 
@@ -84,6 +84,9 @@ pertama duduk; kursi kosong diisi bot, dan pemain yang datang belakangan menggan
 - Ronde berikutnya jalan sendiri. Keluar kapan saja; ronde yang sedang jalan tetap dihitung (kartu disusun otomatis).
 - Tidak menyusun 2 ronde berturut-turut = dikeluarkan dari meja. Koin di bawah minimal meja = tidak bisa lanjut di meja itu.
 - Satu akun hanya bisa duduk di satu meja Ranked.
+- **Ranked 6 kartu**: di tab 6 Kartu pilih jumlah pemain (3–8) lalu meja 5 / 10 / 20. Aturan, saldo minimal, dan koin sama dengan Ranked 13 kartu;
+  waktu menyusun 30 detik. Satu meja memuat **maksimal 4 pemain asli** (batas penyelesaian koin di server akun), kursi sisanya bot.
+  Pemain dengan jumlah pemain berbeda tidak dipertemukan (antrean per jumlah pemain).
 - Belum ada rating, leaderboard, atau bonus harian untuk Capsa.
 
 ## Akun dan koin

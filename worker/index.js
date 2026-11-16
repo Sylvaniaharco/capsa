@@ -4,7 +4,7 @@
 // Fitur yang memakai koin akun (Ranked) WAJIB memverifikasi akun lewat server Mahjong — jangan memakai id dari klien untuk itu.
 import { CapsaRoom } from './room.js';
 import { CapsaLobby } from './lobby.js';
-import { validId, cleanName, ROOM_CODE } from '../src/engine/room.js';
+import { validId, cleanName, validSix, ROOM_CODE } from '../src/engine/room.js';
 import { clampAvatar } from '../src/engine/roster.js';
 import { STAKES, minEntry } from '../src/engine/wallet.js';
 
@@ -48,6 +48,8 @@ async function handleApi(req, env, url) {
     try { b = JSON.parse((await req.text()).slice(0, 500)); } catch { /* ditolak di bawah */ }
     const stake = Number(b.stake);
     if (!STAKES.includes(stake)) return json({ error: 'Meja tidak dikenal' }, 400);
+    const six = b.six ? Number(b.six) : 0; // capsa 6 kartu: jumlah pemain 3–8
+    if (!validSix(six)) return json({ error: 'Jumlah pemain tidak sah' }, 400);
     let user = null;
     try {
       user = await env.MAHJONG.redeem(b.ticket);
@@ -58,7 +60,7 @@ async function handleApi(req, env, url) {
     if (!user) return json({ error: 'Login tidak dikenali. Masuk lagi dengan Google.' }, 401);
     if (!(user.coins >= minEntry(stake))) return json({ error: `Meja ${stake} butuh saldo minimal ${minEntry(stake)} koin` }, 403);
     const lobby = env.LOBBY.get(env.LOBBY.idFromName('main'));
-    const res = await lobby.assign(stake, { userId: user.id, name: cleanName(user.name), avatar: clampAvatar(b.avatar) ?? 0, coins: user.coins });
+    const res = await lobby.assign(stake, { userId: user.id, name: cleanName(user.name), avatar: clampAvatar(b.avatar) ?? 0, coins: user.coins }, six);
     if (!res.ok) return json({ error: res.error }, 409);
     return json({ code: res.code, key: res.key });
   }

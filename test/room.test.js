@@ -4,6 +4,7 @@ import { mulberry32 } from '../src/engine/cards.js';
 import { isValid, evalRow } from '../src/engine/hands.js';
 import { detectSpecial } from '../src/engine/special.js';
 import { quickArrange, solve } from '../src/engine/arrange.js';
+import { quickSix, isValidSix } from '../src/engine/six.js';
 import {
   createRoom, join, leave, start, next, submit, unsubmit, autoArrange, nextAuto, allIn, finishRound, viewFor, seatOf, fixHost, cleanName, validId, GRACE_MS,
 } from '../src/engine/room.js';
@@ -154,7 +155,7 @@ test('pemain keluar saat main: kursinya dimainkan otomatis, host pindah, bisa ke
 });
 
 // ---------- Ranked ----------
-import { createRanked, reserve, joinable, seatedUser, rankedDue, startRanked, nextRanked, settlePayload, applySettle, isPending, RANKED_WAIT_MS, RANKED_NEXT_MS, AFK_ROUNDS } from '../src/engine/room.js';
+import { createRanked, reserve, joinable, seatedUser, rankedDue, startRanked, nextRanked, settlePayload, applySettle, isPending, validSix, RANKED_WAIT_MS, RANKED_NEXT_MS, AFK_ROUNDS } from '../src/engine/room.js';
 
 const U = (n, coins = 1000) => ({ key: `kunci${n}kunci${n}`, userId: `g:${n}`, name: `P${n}`, avatar: 4, coins });
 const rankedStarted = (n = 2, stake = 5) => {
@@ -295,4 +296,104 @@ test('Ranked: meja tunggu yang ditinggal semua pemain ditutup', () => {
   leave(r, U(1).key);
   assert.equal(rankedDue(r, T0 + 30000), null);
   assert.equal(rankedDue(r, T0 + 61000), 'close');
+});
+
+// ---------- Ranked 6 kartu ----------
+const sixStarted = (players, humans = 2, stake = 5) => {
+  const r = createRanked('RANKD', stake, T0, players);
+  for (let i = 1; i <= humans; i++) assert.equal(reserve(r, U(i, 6000), T0).ok, true);
+  startRanked(r, 11, T0, rnd());
+  return r;
+};
+const playSix = (r, now) => {
+  r.seats.forEach((s, i) => { if (!s.bot && !s.left) assert.equal(submit(r, i, { rows: quickSix(r.hands[i], r.six) }).ok, true); });
+  finishRound(r, now);
+};
+
+test('Ranked 6 kartu: kursi = jumlah pemain, 6 kartu per kursi, waktu 30 dtk', () => {
+  for (const n of [3, 5, 8]) {
+    const r = sixStarted(n);
+    assert.equal(r.seats.length, n);
+    assert.equal(r.seats.filter((s) => s.bot).length, n - 2);
+    assert.equal(r.hands.length, n);
+    assert.ok(r.hands.every((h) => h.length === 6));
+    assert.equal(new Set(r.hands.flat()).size, n * 6, 'tidak ada kartu kembar');
+    assert.equal(r.deadline, T0 + 30000 + GRACE_MS);
+    assert.equal(viewFor(r, 0, () => true, U(1).key).six, n);
+    assert.equal(r.seats.filter(Boolean).length, new Set(r.seats.map((s) => s.avatar)).size, 'avatar tidak kembar');
+  }
+  assert.equal(createRanked('RANKD', 5, T0, 0).six, 0);
+  assert.ok(validSix(0) && validSix(3) && validSix(8) && !validSix(2) && !validSix(9) && !validSix(4.5));
+});
+
+test('Ranked 6 kartu: maksimal 4 pemain asli, 3 pemain = 3 kursi', () => {
+  const r = createRanked('RANKD', 5, T0, 8);
+  for (let i = 1; i <= 4; i++) assert.equal(reserve(r, U(i), T0).ok, true);
+  assert.equal(r.startAt, T0, '4 pemain asli: langsung mulai');
+  assert.equal(joinable(r), false);
+  assert.equal(reserve(r, U(5), T0 + 1).ok, false);
+  startRanked(r, 3, T0, rnd());
+  assert.equal(r.seats.filter((s) => s.bot).length, 4);
+  assert.equal(joinable(r), false, 'ronde jalan: bot masih ada tapi pemain asli sudah 4');
+  const r3 = createRanked('RANKD', 5, T0, 3);
+  for (let i = 1; i <= 3; i++) reserve(r3, U(i), T0);
+  assert.equal(r3.startAt, T0, 'meja 3 kursi penuh = 3 pemain');
+  assert.equal(joinable(r3), false);
+});
+
+test('Ranked 6 kartu: submit divalidasi 1-2-3, tanpa kartu spesial', () => {
+  const r = sixStarted(4);
+  const h = r.hands[0];
+  const good = quickSix(h, 4);
+  assert.equal(submit(r, 0, { special: true }).ok, false);
+  assert.equal(submit(r, 0, { rows: { top: h.slice(0, 3), mid: h.slice(3, 5), bot: h.slice(5) } }).ok, false, 'ukuran salah');
+  assert.equal(submit(r, 0, { rows: { top: [0], mid: [1, 2], bot: [3, 4, 5] } }).ok, false, 'bukan kartu yang dibagikan');
+  // susunan terbalik (bawah paling lemah) yang memang tidak sah menurut aturan
+  const asc = [...h].sort((a, b) => a - b);
+  const bad = { top: [asc[5]], mid: [asc[3], asc[4]], bot: [asc[0], asc[1], asc[2]] };
+  assert.equal(isValidSix(bad, 4), false);
+  assert.equal(submit(r, 0, { rows: bad }).ok, false, 'bawah lebih lemah dari tengah');
+  assert.equal(submit(r, 0, { rows: good }).ok, true);
+});
+
+test('Ranked 6 kartu: ronde penuh zero-sum, koin ikut taruhan, ronde berikutnya', () => {
+  const r = sixStarted(6, 2, 10);
+  for (let i = 0; i < 6; i++) if (r.seats[i].bot) autoArrange(r, i, false);
+  playSix(r, T0 + 20000);
+  assert.equal(r.status, 'result');
+  assert.equal(r.last.net.length, 6);
+  assert.equal(r.last.net.reduce((a, b) => a + b, 0), 0);
+  assert.ok(r.last.shown.every((p) => p.rows.top.length === 1 && p.rows.mid.length === 2 && p.rows.bot.length === 3 && !p.special));
+  assert.deepEqual(r.last.deltas, r.last.net.map((n) => n * 10));
+  assert.equal(settlePayload(r).players.length, 2, 'bot tidak ikut dikirim ke server akun');
+  assert.ok(settlePayload(r).players.every((p) => Math.abs(p.net) <= 400));
+  applySettle(r, {});
+  const out = nextRanked(r, 12, T0 + 50000, rnd());
+  assert.equal(out.closed, false);
+  assert.equal(r.round, 2);
+  assert.equal(r.six, 6);
+  assert.equal(r.seats.length, 6);
+  assert.equal(r.hands.length, 6);
+});
+
+test('Ranked 6 kartu: pemain menunggu menggantikan bot, jumlah kursi tetap', () => {
+  const r = sixStarted(5, 1);
+  assert.equal(reserve(r, U(2), T0 + 100).ok, true);
+  assert.ok(isPending(r, U(2).key));
+  for (let i = 0; i < 5; i++) autoArrange(r, i, false);
+  finishRound(r, T0 + 20000);
+  applySettle(r, {});
+  nextRanked(r, 13, T0 + 40000, rnd());
+  assert.equal(r.seats.length, 5);
+  assert.equal(r.seats.filter((s) => !s.bot).length, 2);
+  assert.ok(seatOf(r, U(2).key) >= 0);
+});
+
+test('Ranked 6 kartu: view tidak membocorkan kartu lawan', () => {
+  const r = sixStarted(4);
+  const v = viewFor(r, 0, () => true, U(1).key);
+  assert.equal(v.hand.length, 6);
+  const text = JSON.stringify(v);
+  for (const h of r.hands.slice(1)) assert.ok(!text.includes(JSON.stringify(h)), 'kartu lawan bocor');
+  assert.ok(!text.includes('g:1') && !text.includes(U(1).key));
 });

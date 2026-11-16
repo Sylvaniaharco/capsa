@@ -42,9 +42,9 @@ export class CapsaRoom extends DurableObject {
   }
 
   // ---------- Ranked: dipanggil CapsaLobby (worker/lobby.js) setelah akun diverifikasi ----------
-  async initRanked(code, stake) {
+  async initRanked(code, stake, six = 0) {
     if (this.room) return { ok: false };
-    this.room = R.createRanked(code, stake, Date.now());
+    this.room = R.createRanked(code, stake, Date.now(), six);
     await this.save();
     await this.ctx.storage.setAlarm(Date.now() + 65000);
     return { ok: true };

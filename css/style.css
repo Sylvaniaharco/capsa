@@ -162,6 +162,7 @@ button { font: inherit; color: inherit; }
 .lb-tables h2 { margin: 0 0 .75em; font-size: .93em; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
 .lb-tables h2 small { text-transform: none; letter-spacing: 0; font-weight: 600; opacity: .8; margin-left: .4em; }
 .lb-ranked { margin-bottom: 1.1em; }
+.lb-sub { margin: .5em 0 0; font-size: .82em; color: var(--muted); }
 .tables { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6em; }
 .tables.t3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tbl {

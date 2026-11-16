@@ -100,6 +100,11 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   menolak >4 pemain — jangan naikkan tanpa mengubah repo Mahjong dulu. `/ranked/join` menerima `six` (0 atau 3–8); `CapsaLobby.assign(stake, user, six)`
   memakai antrean per jenis meja (`six8:5`, dst). Klien: `O.n` = jumlah kursi (`toSeat`), `G.v` = `sixVariant(v.six)` untuk meja online,
   `view.six` dari server. Lobi: `#lbRanked6` di `#m6` (ikut `settings.sixN`).
+- **Level bot** (16 Nov 2026): `src/engine/bot.js` (`botPick`, `LEVELS` Mudah/Sedang/Sulit, tes `test/bot.test.js`). Bot mengambil dari 3 susunan
+  terbaik `solve()`/`solveSix()` atau susunan sederhana (`quick`). Sulit = perilaku lama (terbaik, kadang kedua). Solo: tombol `#btnLevel`
+  di lobi (`settings.level`, default Sedang), acak dari `mulberry32(R.seed + kursi*7919)` supaya ronde lanjutan sama. Bot di server (Ranked)
+  selalu `DEFAULT_LEVEL`; pemain yang keluar / habis waktu tetap disusun sebaik mungkin (`autoArrange` hanya melemahkan `seat.bot`).
+  Hasil simulasi (2000 ronde, poin/ronde pemain "bawah sekuat mungkin" vs 3 bot): Mudah −2,0, Sedang −3,0, Sulit −5,0.
 - Teks UI bahasa Indonesia. Ikon lambang kartu pakai SVG `<symbol>` di `index.html` (bukan karakter ♠♥, yang di Android bisa jadi emoji).
 
 ## PWA

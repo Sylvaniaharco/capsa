@@ -64,6 +64,13 @@ Kartu diambil dari As ke bawah sebanyak `ceil(6 × pemain / 4)` nilai; sisanya t
 - AI: semua 60 cara susun dicoba, dinilai dari peluang menang tiap baris (sebaran dibuat saat pertama main per jumlah pemain, berseed tetap).
 - Ranked (koin akun) tersedia juga untuk 6 kartu, lihat bagian Ranked. Belum ada meja online bareng teman untuk 6 kartu.
 
+## Level bot
+
+Tombol **Bot: Sedang** di lobi mengganti kekuatan lawan AI: Mudah / Sedang / Sulit (diingat di HP). Sulit = bot selalu memilih susunan
+terbaik; Sedang dan Mudah sering memilih susunan kedua/ketiga atau susunan sederhana ("bawah sekuat mungkin"), jadi bisa salah strategi.
+Bot di meja Ranked memakai level Sedang. Pemain sederhana (bawah sekuat mungkin) rata-rata kalah 2,0 / 3,0 / 5,0 poin per ronde
+melawan 3 bot Mudah / Sedang / Sulit.
+
 ## Main bareng teman (online)
 
 Di lobi: **Buat meja** → bagikan kode 5 huruf (atau link `…/games/capsa/#room=KODE`) → teman **Gabung pakai kode** → pembuat meja

@@ -10,6 +10,7 @@ import { pickBots, clampAvatar } from './roster.js';
 import { ARRANGE_SECONDS } from './rules.js';
 import { SIX, dealSix, evalSix, isValidSix, orderSix, quickSix, solveSix, sixRules, validPlayers } from './six.js';
 import { minEntry } from './wallet.js';
+import { botPick, DEFAULT_LEVEL } from './bot.js';
 
 export const GRACE_MS = 2500; // kelonggaran jaringan setelah waktu susun habis
 export const RANKED_WAIT_MS = 8000; // Ranked: tunggu pemain lain segini setelah pemain pertama duduk, lalu kursi kosong diisi bot
@@ -153,14 +154,18 @@ export const nextAuto = (room) => (room.status === 'arrange' ? room.seats.findIn
 export function autoArrange(room, seat, smart = true) {
   if (room.status !== 'arrange' || room.subs[seat]) return;
   const hand = room.hands[seat];
+  // bot memakai level Sedang (acak berseed dari ronde + kursi); pemain yang keluar/habis waktu disusun sebaik mungkin
+  const rnd = mulberry32((room.round * 7919 + seat * 104729 + 17) >>> 0);
+  const pickFor = (opts, quick) => (room.seats[seat]?.bot ? botPick(opts, quick, DEFAULT_LEVEL, rnd) : opts[0]);
   if (room.six) {
-    const rows = smart ? solveSix(hand, room.six, { keep: 1 })[0] : quickSix(hand, room.six);
+    const q = () => quickSix(hand, room.six);
+    const rows = smart ? pickFor(solveSix(hand, room.six, { keep: 3 }), q) : q();
     room.subs[seat] = { rows: { top: rows.top, mid: rows.mid, bot: rows.bot } };
     return;
   }
   const sp = detectSpecial(hand);
   if (sp) { room.subs[seat] = { special: sp.type }; return; }
-  const { top, mid, bot } = smart ? solve(hand, { keep: 1 })[0] : quickArrange(hand);
+  const { top, mid, bot } = smart ? pickFor(solve(hand, { keep: 3 }), () => quickArrange(hand)) : quickArrange(hand);
   room.subs[seat] = { rows: { top, mid, bot } };
 }
 

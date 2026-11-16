@@ -3,9 +3,10 @@ import { deal, mulberry32, rankOf, suitOf, parseCards, RANKS } from './engine/ca
 import { evalRow, catName, orderRow } from './engine/hands.js';
 import { detectSpecial } from './engine/special.js';
 import { scoreRound, duelFor, rowBonus } from './engine/scoring.js';
-import { solve } from './engine/arrange.js';
+import { solve, quickArrange } from './engine/arrange.js';
+import { LEVELS, DEFAULT_LEVEL, validLevel, botPick } from './engine/bot.js';
 import { ROWS, ROW_NAMES, SPECIAL, SPECIAL_NAMES, ARRANGE_SECONDS } from './engine/rules.js';
-import { SIX, dealSix, evalSix, sixCatName, sixBonus, sixRules, orderSix, solveSix, sixStrength, sixRankCount, validPlayers } from './engine/six.js';
+import { SIX, dealSix, evalSix, sixCatName, sixBonus, sixRules, orderSix, solveSix, quickSix, sixStrength, sixRankCount, validPlayers } from './engine/six.js';
 import { STAKES, minEntry, normalizeWallet, coinDelta, applyDelta, isBroke, START_COINS } from './engine/wallet.js';
 import { pickBots, clampAvatar, AVATAR_COUNT } from './engine/roster.js';
 import { cardEl, backEl } from './ui/cardview.js';
@@ -28,13 +29,13 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const V13 = {
   six: 0, n: 4, sizes: [3, 5, 5], secs: ARRANGE_SECONDS, rules: undefined,
   ev: evalRow, cat: catName, bonus: rowBonus, order: orderRow, special: detectSpecial,
-  deal: (rng) => deal(rng), solve: (cards, keep) => solve(cards, { keep }),
+  deal: (rng) => deal(rng), solve: (cards, keep) => solve(cards, { keep }), quick: (cards) => quickArrange(cards),
 };
 function sixVariant(n) {
   return {
     six: n, n, sizes: SIX.sizes, secs: SIX.seconds, rules: sixRules(n),
     ev: (c) => evalSix(c, n), cat: sixCatName, bonus: sixBonus, order: (c) => orderSix(c, n), special: () => null,
-    deal: (rng) => dealSix(rng, n).hands, solve: (cards, keep) => solveSix(cards, n, { keep }),
+    deal: (rng) => dealSix(rng, n).hands, solve: (cards, keep) => solveSix(cards, n, { keep }), quick: (cards) => quickSix(cards, n),
   };
 }
 
@@ -44,7 +45,8 @@ const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch 
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* mode privat: jalan tanpa simpanan */ } };
 
 let wallet = normalizeWallet(load(WALLET_KEY), Date.now());
-const settings = { sound: true, sixN: 4, mode: '13', ...(load(SET_KEY) || {}) };
+const settings = { sound: true, sixN: 4, mode: '13', level: DEFAULT_LEVEL, ...(load(SET_KEY) || {}) };
+if (!validLevel(settings.level)) settings.level = DEFAULT_LEVEL;
 if (settings.mode !== '6') settings.mode = '13';
 if (!validPlayers(settings.sixN)) settings.sixN = 4;
 setSound(settings.sound);
@@ -144,6 +146,7 @@ function renderLobby() {
   const sb = $('#btnSound');
   sb.textContent = `Suara: ${settings.sound ? 'nyala' : 'mati'}`;
   sb.setAttribute('aria-pressed', String(settings.sound));
+  $('#btnLevel').textContent = `Bot: ${LEVELS[settings.level]}`;
   $('#btnInstall').hidden = !canShowInstall();
   $('#lbOnline').hidden = !onlineOn;
   renderAccount();
@@ -296,6 +299,13 @@ $('#btnSound').addEventListener('click', () => {
   save(SET_KEY, settings);
   renderLobby();
   sfx('tap');
+});
+$('#btnLevel').addEventListener('click', () => {
+  settings.level = (settings.level + 1) % LEVELS.length;
+  save(SET_KEY, settings);
+  renderLobby();
+  sfx('tap');
+  toast(`Bot lawan AI: ${LEVELS[settings.level]}${settings.level === 0 ? ' (paling gampang dikalahkan)' : settings.level === 2 ? ' (paling kuat)' : ''}`, 2200);
 });
 $('#btnRules').addEventListener('click', () => {
   const m = modal(`<h2>Aturan Capsa Kung2</h2>
@@ -542,11 +552,8 @@ function botReady(i) {
   const p = R.players[i];
   if (p.special) p.declared = true;
   else {
-    const opts = G.v.solve(p.cards, 3);
-    // sesekali ambil pilihan kedua kalau nilainya hampir sama, supaya lawan tidak selalu main "sempurna"
-    // (acak dari seed ronde + kursi, supaya ronde yang dilanjutkan hasilnya sama)
-    const second = opts[1] && opts[0].ev - opts[1].ev < 0.35 && mulberry32(R.seed + i * 7919)() < 0.2;
-    p.rows = second ? opts[1] : opts[0];
+    // level bot (Mudah/Sedang/Sulit): acak dari seed ronde + kursi, supaya ronde yang dilanjutkan hasilnya sama
+    p.rows = botPick(G.v.solve(p.cards, 3), () => G.v.quick(p.cards), settings.level, mulberry32(R.seed + i * 7919));
   }
   p.ready = true;
   setTag(i, 'Siap');

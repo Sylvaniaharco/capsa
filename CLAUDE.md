@@ -111,3 +111,5 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   `buildSeats()`; cek dengan 8 pemain. Cek tampilan di HP landscape (915×412) dan portrait (412×915) sebelum merge.
 - Elemen yang dianimasikan dengan `transform` jangan diposisikan pakai `transform: translate(-50%, …)` (animasi menimpanya) — pakai wadah grid/flex.
 - Tombol Keluar (`.tb-top`) harus tetap di atas layar susun (`z-index`), supaya pemain bisa keluar saat menyusun.
+- Tembus keliling = layar "Hu besar" (`bigWin()` di `src/main.js`, CSS `.bigwin`, suara `sweep` di `src/ui/sfx.js`, getar kalau pemain sendiri);
+  dipakai semua mode (13/6 kartu, online). Cari seed untuk ngetes: mode 6 kartu 3 pemain `?seed=6` + Saran 1 = kamu tembus keliling.

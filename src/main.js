@@ -863,6 +863,28 @@ function banner(html, gold = false) {
   $('#center').innerHTML = `<div class="banner${gold ? ' gold' : ''}">${html}</div><div class="skiphint">ketuk meja untuk percepat</div>`;
 }
 
+/** Tembus keliling: layar besar seperti "Hu besar" di Mahjong (tulisan meletup, sinar emas, gong, HP bergetar). */
+async function bigWin(who) {
+  const me = who === 0;
+  const s = G.seats[who];
+  const el = document.createElement('div');
+  el.className = `bigwin${me ? ' mine' : ''}`;
+  el.innerHTML = `<div class="bw-rays"></div><div class="bw-box">
+    <div class="bw-ava"><img src="${avatarSrc(s.avatar)}" alt=""></div>
+    <div class="bw-title">TEMBUS<br>KELILING!</div>
+    <div class="bw-sub">${me ? 'Kamu' : esc(s.name)} tembus semua lawan · poin ×4</div></div>`;
+  $('#center').replaceChildren();
+  $('#table').append(el);
+  seatEl(who).classList.add('glow');
+  sfx('sweep');
+  if (me) try { navigator.vibrate?.([60, 80, 60, 80, 160]); } catch { /* tanpa getar */ }
+  await pause(2600);
+  el.classList.add('out');
+  await sleep(250);
+  el.remove();
+  seatEl(who)?.classList.remove('glow');
+}
+
 async function showdown() {
   const gen = G.gen, R = G.round;
   R.phase = 'show';
@@ -920,10 +942,8 @@ async function showdown() {
   const extra = (d) => { run[d.a] += d.total - d.base; run[d.b] -= d.total - d.base; };
   if (res.sweep >= 0) {
     for (const d of res.duels) if (d.scoop && (d.scoop === 1 ? d.a : d.b) === res.sweep) extra(d);
-    banner(`${name(res.sweep)} TEMBUS KELILING!<small>semua poinnya ×4</small>`, true);
-    sfx('scoop');
     push();
-    await pause(1900);
+    await bigWin(res.sweep);
     if (stale(gen)) return;
   }
   for (const d of res.duels) {

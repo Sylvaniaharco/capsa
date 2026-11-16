@@ -34,15 +34,13 @@ test('urutan kombinasi 3 kartu: kartu tinggi < pair < straight < flush < tris < 
   assert.equal(cat('Ks Qs Js'), 'Straight Flush');
 });
 
-test('straight As kecil: As + dua kartu terendah dek', () => {
-  assert.equal(cat('As 10d Jh', 3), 'Straight'); // 3 pemain: dek A–10
-  assert.equal(cat('As 9d 10h', 4), 'Straight'); // 4 pemain: dek A–9
-  assert.equal(cat('As 9d 10h', 3), 'Kartu Tinggi');
-  assert.equal(cat('As 3d 4h', 8), 'Straight');
-  assert.equal(cat('As 10s Js', 3), 'Straight Flush');
-  // straight As kecil paling lemah
+test('As selalu kartu tertinggi: tidak ada straight As-kecil', () => {
+  for (const [s, n] of [['As 10d Jh', 3], ['As 9d 10h', 4], ['As 3d 4h', 8]]) assert.equal(cat(s, n), 'Kartu Tinggi');
+  assert.equal(cat('As 10s Js', 3), 'Flush');
+  assert.equal(cat('Ac 10c 9d', 4), 'Kartu Tinggi'); // contoh dari HP Teddy
+  assert.equal(cat('As Kd Qh', 3), 'Straight');
   assert.ok(evalSix(P('As 10d Jh'), 3) < evalSix(P('10s Jd Qh'), 3));
-  assert.deepEqual(orderSix(P('As 10d Jh'), 3), P('Jh 10d As'));
+  assert.deepEqual(orderSix(P('Jh As 10d')), P('As Jh 10d'));
 });
 
 test('nilai sama ditentukan lambang (♠ > ♥ > ♣ > ♦), jadi tidak ada seri', () => {

@@ -41,7 +41,7 @@ const leadRank = (v) => Math.floor(v / (B * B * 4)) % B - 1;
 /** Kartu urut dari kuat: rank turun, lalu lambang turun. */
 const desc = (cards) => [...cards].sort((a, b) => b - a);
 
-/** Nilai satu baris (1, 2, atau 3 kartu). n = jumlah pemain (menentukan straight As-kecil). */
+/** Nilai satu baris (1, 2, atau 3 kartu). n = jumlah pemain (tidak mengubah nilai sekarang; tetap diterima supaya pemanggil seragam). */
 export function evalSix(cards, n) {
   const c = desc(cards);
   const r = c.map(rankOf);
@@ -55,14 +55,11 @@ export function evalSix(cards, n) {
   if (r[0] === r[1]) return pack(SIX_CAT.PAIR, r[0] + 1, r[2] + 1, 0, suitOf(c[0]));
   if (r[1] === r[2]) return pack(SIX_CAT.PAIR, r[1] + 1, r[0] + 1, 0, suitOf(c[1]));
   const flush = suitOf(c[0]) === suitOf(c[1]) && suitOf(c[1]) === suitOf(c[2]);
-  const low = sixLowRank(n);
-  let top = -1; // kartu tertinggi straight (indeks di c)
-  if (r[0] - r[2] === 2) top = 0;
-  else if (r[0] === 12 && r[1] === low + 1 && r[2] === low) top = 1; // As jadi kartu terkecil: A + dua kartu terendah dek
-  if (top >= 0) {
-    const s = suitOf(c[top]);
-    if (flush) return r[top] === 12 ? pack(SIX_CAT.ROYAL, 13, 0, 0, s) : pack(SIX_CAT.STRAIGHT_FLUSH, r[top] + 1, 0, 0, s);
-    return pack(SIX_CAT.STRAIGHT, r[top] + 1, 0, 0, s);
+  // straight hanya tiga nilai berurutan; As selalu kartu tertinggi (tidak bisa jadi kartu kecil, keputusan Teddy)
+  if (r[0] - r[2] === 2) {
+    const s = suitOf(c[0]);
+    if (flush) return r[0] === 12 ? pack(SIX_CAT.ROYAL, 13, 0, 0, s) : pack(SIX_CAT.STRAIGHT_FLUSH, r[0] + 1, 0, 0, s);
+    return pack(SIX_CAT.STRAIGHT, r[0] + 1, 0, 0, s);
   }
   return pack(flush ? SIX_CAT.FLUSH : SIX_CAT.HIGH, r[0] + 1, r[1] + 1, r[2] + 1, suitOf(c[0]));
 }
@@ -92,16 +89,11 @@ export function isValidSix(rows, n) {
   return evalSix(rows.top, n) <= m && m <= evalSix(rows.bot, n);
 }
 
-/** Urutan tampil satu baris: kembar dulu, lalu kuat ke lemah; straight As-kecil As di belakang. */
-export function orderSix(cards, n) {
+/** Urutan tampil satu baris: kembar dulu, lalu kuat ke lemah. */
+export function orderSix(cards) {
   const cnt = new Map();
   for (const x of cards) cnt.set(rankOf(x), (cnt.get(rankOf(x)) || 0) + 1);
-  const out = [...cards].sort((a, b) => cnt.get(rankOf(b)) - cnt.get(rankOf(a)) || b - a);
-  if (cards.length === 3) {
-    const cat = sixCatOf(evalSix(cards, n));
-    if ((cat === SIX_CAT.STRAIGHT || cat === SIX_CAT.STRAIGHT_FLUSH) && rankOf(out[0]) === 12 && rankOf(out[1]) !== 11) out.push(out.shift());
-  }
-  return out;
+  return [...cards].sort((a, b) => cnt.get(rankOf(b)) - cnt.get(rankOf(a)) || b - a);
 }
 
 // 60 cara bagi 6 kartu: 3 ke bawah, 2 dari sisa ke tengah, 1 ke atas (indeks kartu).

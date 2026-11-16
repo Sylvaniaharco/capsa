@@ -57,7 +57,7 @@ Kartu diambil dari As ke bawah sebanyak `ceil(6 × pemain / 4)` nilai; sisanya t
 
 - Urutan kombinasi: Kartu Tinggi < Pair < Straight < **Flush** < Tris < Straight Flush < Royal (A-K-Q satu lambang).
   Flush di atas straight karena di dek pendek flush 3 kartu lebih jarang. Tengah hanya bisa Kartu Tinggi atau Pair; Atas hanya satu kartu.
-- As boleh jadi kartu terkecil straight bersama dua kartu terendah dek (meja 3 pemain: A-10-J; meja 8 pemain: A-3-4).
+- As selalu kartu tertinggi: straight hanya tiga nilai berurutan (A-K-Q tertinggi); As tidak bisa jadi kartu kecil (A-10-J bukan straight).
 - Nilai sama → **lambang** kartu penentu (♠ > ♥ > ♣ > ♦), jadi tidak ada seri. Kombinasi dibandingkan dulu, lalu nilai kartu
   (termasuk kicker), baru lambang kartu tertinggi.
 - Tidak ada kartu spesial. Bonus dibayar hanya kalau baris itu menang dan ikut dikali tembus.

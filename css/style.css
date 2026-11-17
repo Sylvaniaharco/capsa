@@ -127,15 +127,23 @@ button { font: inherit; color: inherit; }
     var(--bg);
   overflow: auto;
 }
-#app.portrait .emblem { --mw: 2.9em; }
+#app.portrait .emblem { --mw: 3.2em; }
 #app.portrait #lobby {
   font-size: clamp(14px, min(calc(var(--vw) * 2.6), calc(var(--vh) * 1.7)), 24px);
   grid-template-columns: minmax(0, 34em); align-content: center; gap: 1.6em;
 }
 #lobby .btn { font-size: 1em; padding: .6em 1.1em; min-height: 2.8em; }
 .lb-brand { display: flex; flex-direction: column; align-items: center; gap: .55em; text-align: center; min-width: 0; }
-.lb-brand h1 { margin: 0; font-size: 3.2em; letter-spacing: -.02em; line-height: 1; }
-.lb-brand h1 span { color: var(--accent); font-style: italic; }
+.lb-brand h1 { margin: 0; font-size: 3em; letter-spacing: .03em; line-height: 1; font-family: Georgia, 'Times New Roman', serif; font-weight: 900; }
+/* tulisan emas bergaris cokelat tua, sama dengan logo (icons/icon.svg) */
+.lb-brand h1, .lb-brand h1 span {
+  background: linear-gradient(#fffbd0, #ffd54a 42%, #f3a51b 75%, #c76a0a); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lb-brand h1 {
+  filter: drop-shadow(2px 0 0 #4a1405) drop-shadow(-2px 0 0 #4a1405) drop-shadow(0 2px 0 #4a1405) drop-shadow(0 -2px 0 #4a1405)
+    drop-shadow(0 4px 5px rgba(0, 0, 0, .5));
+}
+.lb-brand h1 span { font-size: .78em; }
 .lb-tag { margin: 0; color: var(--muted); }
 .lb-row { display: flex; flex-wrap: wrap; justify-content: center; gap: .55em; margin-top: .3em; }
 .wallet {
@@ -152,10 +160,10 @@ button { font: inherit; color: inherit; }
 #lobby .btn.acct { display: inline-flex; align-items: center; gap: .6em; padding: .3em .95em .3em .35em; border-color: rgba(255, 207, 74, .45); }
 .btn.acct img { width: 2.1em; height: 2.1em; border-radius: 50%; object-fit: cover; background: #cfe3f2; }
 .btn.acct span { color: var(--accent); font-variant-numeric: tabular-nums; }
-.emblem { --mw: min(2.9em, calc(var(--vh) * 6.6)); display: flex; flex-direction: column; align-items: center; margin-bottom: .4em; }
+.emblem { --mw: min(3.2em, calc(var(--vh) * 8)); display: flex; flex-direction: column; align-items: center; margin-bottom: .4em; }
 .emblem .hrow { display: flex; height: calc(var(--mw) * .8); }
 .emblem .hrow:last-child { height: auto; }
-.emblem .card { margin-left: calc(var(--mw) * -.34); }
+.emblem .card { margin-left: calc(var(--mw) * -.08); }
 .emblem .card:first-child { margin-left: 0; }
 
 .lb-tables { min-width: 0; max-width: 42em; }

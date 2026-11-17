@@ -118,7 +118,9 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   terbuka — pengalaman di Mahjong), dan jangan ganti `id` (ganti `id` = app baru bagi Chrome).
 - `sw.js`: jaringan dulu, cache cadangan; `api/` tidak pernah dicache. Di lobi, game mengecek `version.json` saat tab aktif lagi dan memuat
   ulang kalau versinya beda (`checkUpdate` di `src/main.js`) — jangan lakukan itu saat ada ronde berjalan.
-- Ikon: sumbernya `icons/icon.svg`; PNG dibuat `node scripts/icons.cjs` (butuh Playwright, hanya kalau desain berubah) dan ikut di-commit.
+- Ikon: sumbernya `icons/icon.svg` (susunan 6 kartu 1-2-3: A♥ / A♣ A♦ / A♠ K♠ Q♠ + tulisan emas CAPSA KUNG2 gaya logo Mahjong Kung2,
+  keputusan Teddy 17 Nov 2026); PNG dibuat `node scripts/icons.cjs` (butuh Playwright + akses Google Fonts untuk font Cinzel, hanya kalau
+  desain berubah) dan ikut di-commit. Emblem lobi (`renderEmblem`) dan judul emas `.lb-brand h1` meniru logo ini.
 
 ## UI yang perlu diingat
 

@@ -192,8 +192,8 @@ $('#lbAccount').addEventListener('click', (e) => {
   };
 });
 function renderEmblem() {
-  // tangan impian: tris A di atas, full house di tengah, royal flush di bawah
-  const rows = ['As Ah Ad', '9s 9h 9c 4d 4c', '10h Jh Qh Kh Ah'].map(parseCards);
+  // sama dengan logo (icons/icon.svg): susunan Capsa 6 kartu 1-2-3
+  const rows = ['Ah', 'Ac Ad', 'As Ks Qs'].map(parseCards);
   $('#emblem').replaceChildren(...rows.map((r) => {
     const d = document.createElement('div');
     d.className = 'hrow';

@@ -10,7 +10,13 @@
     "binding": "ASSETS",
     "run_worker_first": ["/games/capsa/api/*"]
   },
-  "routes": [{ "pattern": "sylvaniaharco.com/games/capsa*", "zone_name": "sylvaniaharco.com" }],
+  "routes": [
+    { "pattern": "sylvaniaharco.com/games/capsa*", "zone_name": "sylvaniaharco.com" },
+    // Halaman depan semua game (hub/index.html → dist/games/index.html). Hanya dua alamat persis ini, bukan /games/*
+    // (game lain punya Worker sendiri: mahjonghk, domracer).
+    { "pattern": "sylvaniaharco.com/games", "zone_name": "sylvaniaharco.com" },
+    { "pattern": "sylvaniaharco.com/games/", "zone_name": "sylvaniaharco.com" }
+  ],
   // Meja online: satu Durable Object per kode meja (SQLite bawaan); pencari meja Ranked: satu global
   "durable_objects": {
     "bindings": [

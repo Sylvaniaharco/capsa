@@ -22,6 +22,11 @@ Plus **Capsa 6 kartu** (susun 1-2-3, 3–8 pemain, hanya lawan AI). Saudara dari
   Migrasi DO ada di `wrangler.jsonc`: tambah class DO baru = tambah tag migrasi baru, jangan ubah yang lama.
 - `npm run build` menyalin `index.html`, `manifest.webmanifest`, `css`, `src`, `avatars`, `icons` ke `dist/games/capsa/`, lalu mengisi
   `sw.js` (daftar precache + versi dari hash isi) dan `version.json`. File/folder statis baru → daftarkan di `scripts/build.mjs`.
+- **Halaman depan semua game** `sylvaniaharco.com/games/` (keputusan Teddy, 17 Nov 2026) juga ada di repo ini: `hub/index.html`
+  (satu file, CSS/JS di dalamnya) → `dist/games/index.html`, route `sylvaniaharco.com/games` + `/games/` di `wrangler.jsonc`.
+  Route hanya dua alamat itu, jadi file lain di `dist/games/` (selain `capsa/`) tidak tersaji. Daftar game = array `GAMES` di file itu
+  (status `live`/`new`/`soon`); gambar diambil dari folder tiap game (`/games/mahjonghk/icons`, `/games/domracer/icons`, ...).
+  Akun: baca `/games/mahjonghk/api/me`, login `?next=games` (kunci `games` di `NEXT` repo Mahjong). DOM Racer = repo games-kart-racer.
 - Deploy otomatis oleh Cloudflare dari branch `main` (Worker `capsa`; build `npm run build`, deploy `npx wrangler deploy`).
   **Merge/push ke `main` = langsung live.** Kerjakan di branch, lalu buat PR; CI (`.github/workflows/test.yml`) harus hijau sebelum merge.
   `name` di `wrangler.jsonc` harus tetap sama dengan nama Worker di Cloudflare (`capsa`).

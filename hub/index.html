@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sylvania Games — Game Kung2 sekeluarga</title>
+<meta name="description" content="Kumpulan game Sylvania: Mahjong Kung2, Capsa Kung2, DOM Racer, dan game baru berikutnya. Gratis, langsung main di browser HP atau komputer." />
+<meta name="theme-color" content="#120d24" />
+<link rel="canonical" href="https://sylvaniaharco.com/games/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Sylvania Games" />
+<meta property="og:title" content="Sylvania Games — Game Kung2 sekeluarga" />
+<meta property="og:description" content="Mahjong Kung2, Capsa Kung2, DOM Racer. Gratis, langsung main di browser." />
+<meta property="og:url" content="https://sylvaniaharco.com/games/" />
+<meta property="og:image" content="https://sylvaniaharco.com/games/mahjonghk/icons/icon-512.png" />
+<link rel="icon" href="/games/mahjonghk/icons/favicon-32.png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/games/mahjonghk/icons/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" />
+<!--
+  Halaman depan semua game di sylvaniaharco.com/games/ (satu file, tanpa CSS/JS terpisah: route Worker hanya
+  menangkap /games dan /games/, jadi file lain di folder ini tidak akan tersaji). Gambar diambil dari folder tiap game.
+  Game baru → tambah satu baris di GAMES (bagian <script> paling bawah).
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #120d24;
+    --bg2: #1b1436;
+    --panel: rgba(255, 255, 255, 0.06);
+    --line: rgba(255, 255, 255, 0.12);
+    --text: #f6f2ff;
+    --muted: #b9b0d6;
+    --gold: #ffcf4a;
+    --gold2: #ff9f1c;
+    --display: 'Fredoka', 'Nunito', system-ui, sans-serif;
+    --body: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: var(--body); line-height: 1.5; overflow-x: hidden;
+  }
+  a { color: inherit; }
+  img { display: block; max-width: 100%; }
+
+  /* latar: cahaya lembut warna-warni */
+  .glow { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+  .glow i { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .45; }
+  .glow i:nth-child(1) { width: 520px; height: 520px; left: -160px; top: -140px; background: #7b3fe4; }
+  .glow i:nth-child(2) { width: 460px; height: 460px; right: -160px; top: 120px; background: #e2365f; opacity: .3; }
+  .glow i:nth-child(3) { width: 600px; height: 600px; left: 30%; top: 70%; background: #0f8f6e; opacity: .25; }
+
+  .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+
+  /* header */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: .2px; }
+  .brand .logo { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--gold), var(--gold2)); color: #2a1600; box-shadow: 0 6px 18px rgba(255, 159, 28, .35); }
+  .brand small { display: block; font-family: var(--body); font-weight: 700; font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; line-height: 1; }
+  .acct { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+  .acct[hidden] { display: none; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line); font-weight: 800; font-size: 14px; white-space: nowrap; }
+  .chip .coin { width: 22px; height: 22px; flex: none; }
+  .chip .nm { max-width: 120px; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-weight: 700; }
+  .btn-login { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; text-decoration: none;
+    background: #fff; color: #1f1f1f; font-weight: 800; font-size: 14px; white-space: nowrap; }
+  .btn-login svg { width: 18px; height: 18px; }
+
+  /* hero */
+  .hero { padding: 28px 0 8px; display: grid; gap: 28px; grid-template-columns: 1.1fr .9fr; align-items: center; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(255, 207, 74, .12);
+    color: var(--gold); font-weight: 800; font-size: 13px; letter-spacing: .3px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(36px, 6.4vw, 64px); line-height: 1.05; margin: 14px 0 14px; letter-spacing: -.5px; }
+  h1 .hl { background: linear-gradient(90deg, var(--gold), #ff7a59 55%, #ff4f9a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { color: var(--muted); font-size: clamp(16px, 2vw, 18px); max-width: 520px; margin: 0 0 22px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 14px; text-decoration: none;
+    font-family: var(--display); font-weight: 600; font-size: 17px; transition: transform .15s, box-shadow .15s; }
+  .btn.primary { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: #2a1600; box-shadow: 0 10px 26px rgba(255, 159, 28, .3); }
+  .btn.ghost { background: var(--panel); border: 1px solid var(--line); }
+  .btn:hover { transform: translateY(-2px); }
+
+  /* tumpukan avatar karakter */
+  .family { position: relative; aspect-ratio: 1 / .82; }
+  .family img { position: absolute; width: 30%; aspect-ratio: 1; object-fit: cover; border-radius: 26%;
+    border: 4px solid var(--bg); box-shadow: 0 14px 30px rgba(0, 0, 0, .45); background: var(--bg2);
+    animation: bob 5s ease-in-out infinite; }
+  @keyframes bob { 50% { translate: 0 -8px; } }
+  .family .badge { position: absolute; left: 50%; bottom: 2%; translate: -50% 0; padding: 8px 16px; border-radius: 999px;
+    background: rgba(18, 13, 36, .85); border: 1px solid var(--line); backdrop-filter: blur(6px); font-weight: 800; font-size: 13px; white-space: nowrap; }
+
+  /* daftar game */
+  section.games { padding: 40px 0 20px; }
+  .sec-h { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  h2 { font-family: var(--display); font-weight: 700; font-size: clamp(24px, 3.4vw, 32px); margin: 0; }
+  .sec-h p { margin: 0; color: var(--muted); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+
+  .game { position: relative; display: flex; flex-direction: column; border-radius: 24px; overflow: hidden; text-decoration: none;
+    background: var(--bg2); border: 1px solid var(--line); transition: transform .2s, box-shadow .2s, border-color .2s; }
+  a.game:hover, a.game:focus-visible { transform: translateY(-4px); box-shadow: 0 22px 44px rgba(0, 0, 0, .45); border-color: rgba(255, 255, 255, .25); outline: none; }
+  .cover { position: relative; height: 180px; overflow: hidden; background: var(--c1); display: grid; place-items: center; }
+  .cover::before { content: ''; position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 110%, var(--c2), transparent 60%); }
+  .cover .deco { position: absolute; inset: 0; font-family: var(--display); font-weight: 700; color: rgba(255, 255, 255, .1); pointer-events: none; }
+  .cover .deco span { position: absolute; line-height: 1; }
+  .cover .icon { position: relative; width: 116px; height: 116px; border-radius: 28px; object-fit: cover;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, .45); transition: transform .3s; }
+  a.game:hover .icon { transform: scale(1.06) rotate(-3deg); }
+  .state { position: absolute; top: 14px; left: 14px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800;
+    background: rgba(0, 0, 0, .35); backdrop-filter: blur(4px); letter-spacing: .3px; }
+  .state.new { background: var(--gold); color: #2a1600; }
+  .body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .body h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 24px; line-height: 1.15; }
+  .body p { margin: 0; color: var(--muted); font-size: 15px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .tags span { padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, .07); font-size: 12.5px; font-weight: 700; color: #ddd6f5; }
+  .tags span.coin { background: rgba(255, 207, 74, .14); color: var(--gold); }
+  .play { margin-top: auto; padding-top: 8px; display: flex; align-items: center; justify-content: space-between; font-family: var(--display); font-weight: 600; font-size: 17px; }
+  .play b { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 12px; background: var(--c3, var(--gold)); color: var(--c4, #2a1600); font-weight: 600; }
+  .play small { font-family: var(--body); font-size: 12.5px; font-weight: 700; color: var(--muted); }
+
+  .game.soon { border-style: dashed; background: transparent; }
+  .game.soon .cover { background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, .03) 0 14px, transparent 14px 28px); }
+  .game.soon .cover::before { display: none; }
+  .game.soon .q { width: 116px; height: 116px; border-radius: 28px; display: grid; place-items: center; font-family: var(--display); font-size: 64px; font-weight: 700;
+    color: var(--muted); border: 2px dashed var(--line); }
+
+  /* fitur */
+  .feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 30px 0 10px; }
+  .feat { padding: 18px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); display: flex; gap: 14px; align-items: flex-start; }
+  .feat .ic { width: 42px; height: 42px; border-radius: 12px; flex: none; display: grid; place-items: center; background: rgba(255, 207, 74, .14); color: var(--gold); }
+  .feat .ic svg { width: 22px; height: 22px; }
+  .feat h4 { margin: 0 0 2px; font-family: var(--display); font-weight: 600; font-size: 17px; }
+  .feat p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  footer { padding: 40px 0 calc(28px + env(safe-area-inset-bottom)); color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 40px; }
+  footer nav { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; padding-top: 8px; }
+    .family { max-width: 420px; width: 100%; margin: 0 auto; order: -1; aspect-ratio: 1 / .62; }
+    .family img { width: 25%; }
+    .feats { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .brand small { display: none; }
+    .chip .nm { display: none; }
+    .grid { grid-template-columns: 1fr; }
+    .cover { height: 150px; }
+    .cover .icon, .game.soon .q { width: 96px; height: 96px; border-radius: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="glow" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<div class="wrap">
+  <header>
+    <a class="brand" href="/games/">
+      <span class="logo" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="6"/><path d="M6 12h4M8 10v4"/><circle cx="15.5" cy="11" r="1" fill="currentColor"/><circle cx="18" cy="13.5" r="1" fill="currentColor"/></svg>
+      </span>
+      <span>Sylvania Games<small>Game Kung2</small></span>
+    </a>
+    <div class="acct" id="acct" hidden></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="kicker">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>
+          Gratis · tanpa install · langsung main
+        </span>
+        <h1>Game seru buat <span class="hl">main bareng keluarga</span></h1>
+        <p class="lead">Mahjong, capsa, sampai balap kart. Main sendiri lawan AI, ajak teman lewat link meja, atau adu koin di Ranked. Jalan di HP, tablet, dan komputer.</p>
+        <div class="cta">
+          <a class="btn primary" href="#daftar">Pilih game
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          </a>
+          <a class="btn ghost" href="#akun">Satu akun, semua game</a>
+        </div>
+      </div>
+      <div class="family" id="family" aria-hidden="true"><span class="badge">12 karakter Kung2 siap jadi lawan</span></div>
+    </section>
+
+    <section class="games" id="daftar">
+      <div class="sec-h">
+        <h2>Pilih game</h2>
+        <p id="count"></p>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <section class="feats" id="akun">
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
+        <div><h4>Satu akun Google</h4><p>Masuk sekali, berlaku di Mahjong Kung2 dan Capsa Kung2. Koinnya juga satu saldo.</p></div>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a4 4 0 0 0-5-3.9M9 20H2v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/><circle cx="7" cy="7" r="3.5"/><circle cx="17" cy="8" r="3"/></svg></div>
+        <div><h4>Main bareng teman</h4><p>Buat meja, kirim link-nya ke WhatsApp, kursi kosong diisi bot.</p></div>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+        <div><h4>Pasang di layar HP</h4><p>Buka game, lalu menu ⋮ → <b>Instal aplikasi</b> (Chrome) atau Bagikan → <b>Tambah ke Layar Utama</b> (iPhone/iPad).</p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>© <span id="yr">2026</span> Sylvania</span>
+    <nav>
+      <a href="/">Toko Sylvania</a>
+      <a href="/games/mahjonghk/privacy.html">Kebijakan privasi</a>
+      <a href="/games/mahjonghk/hapus-akun.html">Hapus akun</a>
+    </nav>
+  </footer>
+</div>
+
+<script>
+// Daftar game. Tambah game baru = tambah satu objek. status: 'live' | 'new' (live + label Baru) | 'soon' (belum bisa dibuka).
+// c1..c4 = warna sampul, cahaya, tombol, teks tombol. deco = huruf/simbol samar di sampul.
+const GAMES = [
+  {
+    name: 'Mahjong Kung2', url: '/games/mahjonghk/', icon: '/games/mahjonghk/icons/icon-512.png', status: 'live',
+    desc: 'Mahjong 3D dengan dua gaya: Hong Kong (faan) dan Kungkung pakai joker. Ada misi harian, level, dan toko avatar.',
+    tags: ['Lawan 3 AI', 'Meja teman', { t: 'Ranked koin', coin: 1 }],
+    c1: '#5e0f12', c2: '#c23a1e', c3: '#ffcf4a', c4: '#3a0b00', deco: ['東', '中', '發', '北', '南'],
+  },
+  {
+    name: 'Capsa Kung2', url: '/games/capsa/', icon: '/games/capsa/icons/icon-512.png', status: 'new',
+    desc: 'Capsa susun 13 kartu lawan 3 pemain, atau Capsa 6 kartu (susun 1-2-3) rame-rame sampai 8 pemain. Ada saran susunan.',
+    tags: ['13 & 6 kartu', 'Meja teman', { t: 'Ranked 5/10/20', coin: 1 }],
+    c1: '#06352b', c2: '#13896a', c3: '#e9fff7', c4: '#06352b', deco: ['A', 'K', 'Q', 'J', '10'],
+  },
+  {
+    name: 'DOM Racer', url: '/games/domracer/', icon: '/games/domracer/icons/icon-192.png', status: 'live',
+    desc: 'Balap kart 3D buat anak-anak. Main pakai setir, gamepad, keyboard, atau miringkan HP/iPad seperti setir.',
+    tags: ['Anak-anak', 'Setir & gamepad', 'Kejuaraan mini'],
+    c1: '#2a1f5c', c2: '#e2408a', c3: '#ff5fa2', c4: '#fff', deco: ['1', '2', '3', 'GO', '›››'],
+  },
+  {
+    name: 'Game berikutnya', status: 'soon',
+    desc: 'Lagi diracik. Punya ide game yang mau dimainkan bareng keluarga? Kabari Sylvania.',
+    tags: ['Segera hadir'],
+  },
+];
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+// posisi huruf samar di sampul (tetap, bukan acak, supaya tampilan sama tiap dibuka)
+const DECO_POS = [[6, 8, 54, -12], [72, 4, 40, 10], [14, 62, 46, 8], [80, 58, 58, -8], [44, 70, 30, 0]];
+
+function card(g) {
+  const tags = (g.tags || []).map((t) => (typeof t === 'string' ? `<span>${esc(t)}</span>` : `<span class="coin">${esc(t.t)}</span>`)).join('');
+  if (g.status === 'soon') {
+    return `<div class="game soon"><div class="cover"><div class="q">?</div></div>
+      <div class="body"><h3>${esc(g.name)}</h3><p>${esc(g.desc)}</p><div class="tags">${tags}</div></div></div>`;
+  }
+  const deco = (g.deco || []).map((d, i) => {
+    const [x, y, size, rot] = DECO_POS[i % DECO_POS.length];
+    return `<span style="left:${x}%;top:${y}%;font-size:${size}px;rotate:${rot}deg">${esc(d)}</span>`;
+  }).join('');
+  const style = ['c1', 'c2', 'c3', 'c4'].map((k) => (g[k] ? `--${k}:${g[k]}` : '')).filter(Boolean).join(';');
+  return `<a class="game" href="${esc(g.url)}" style="${style}">
+    <div class="cover"><div class="deco" aria-hidden="true">${deco}</div>
+      ${g.status === 'new' ? '<span class="state new">BARU</span>' : ''}
+      <img class="icon" src="${esc(g.icon)}" alt="" width="116" height="116" loading="lazy" /></div>
+    <div class="body"><h3>${esc(g.name)}</h3><p>${esc(g.desc)}</p><div class="tags">${tags}</div>
+      <div class="play"><small>Gratis · di browser</small><b>Main ›</b></div></div></a>`;
+}
+
+document.getElementById('grid').innerHTML = GAMES.map(card).join('');
+const live = GAMES.filter((g) => g.status !== 'soon').length;
+document.getElementById('count').textContent = `${live} game siap dimainkan`;
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+// karakter Kung2 (avatar yang sama dengan bot di Mahjong & Capsa): 7 dari 12, susunan tetap
+const FAM = [[2, 2, 6, 0], [6, 36, 0, 1.2], [9, 70, 4, 2.4], [3, 18, 40, .6], [12, 52, 36, 1.8], [11, 4, 70, 3], [1, 64, 66, .9]];
+document.getElementById('family').insertAdjacentHTML('afterbegin', FAM.map(([n, x, y, d]) =>
+  `<img src="/games/mahjonghk/avatars/${n}.webp" alt="" style="left:${x}%;top:${y}%;animation-delay:-${d}s" />`).join(''));
+
+// akun bersama (server Mahjong, satu origin). Gagal / bukan di sylvaniaharco.com → bagian akun disembunyikan.
+const API = '/games/mahjonghk/api';
+const COIN = '<svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffb81c"/><circle cx="12" cy="12" r="8" fill="#ffd95a" stroke="#e59a00" stroke-width="1.5"/><path d="M12 7.5v9M9.5 9.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4" fill="none" stroke="#b36b00" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const GOOGLE = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.2-.1-2.3-.4-3.5z"/></svg>';
+async function getJson(p) {
+  const r = await fetch(API + p, { credentials: 'same-origin', cache: 'no-store' });
+  if (!r.ok || !(r.headers.get('content-type') || '').includes('json')) throw new Error('bukan JSON');
+  return r.json();
+}
+if (/[?&]login=ok/.test(location.search)) history.replaceState(null, '', location.pathname + location.hash);
+(async () => {
+  if (!/(^|\.)sylvaniaharco\.com$/.test(location.hostname)) return;
+  try {
+    const [me, cfg] = await Promise.all([getJson('/me'), getJson('/config').catch(() => null)]);
+    const el = document.getElementById('acct');
+    const u = me && me.user;
+    if (u && !u.guest && typeof u.name === 'string') {
+      const coins = Number(me.wallet && me.wallet.coins);
+      const n = Number.isFinite(coins) ? Math.max(0, Math.floor(coins)).toLocaleString('id-ID') : '–';
+      el.innerHTML = `<span class="chip" title="Koin akun, dipakai bersama Mahjong & Capsa">${COIN}<span>${n}</span><span class="nm">${esc(u.name.slice(0, 24))}</span></span>`;
+    } else if (cfg && cfg.google) {
+      el.innerHTML = `<a class="btn-login" href="${API}/auth/google?next=games">${GOOGLE}Masuk</a>`;
+    } else return;
+    el.hidden = false;
+  } catch { /* offline / server tidak menjawab: halaman tetap jalan tanpa info akun */ }
+})();
+</script>
+</body>
+</html>

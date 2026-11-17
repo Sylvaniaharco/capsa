@@ -36,4 +36,6 @@ writeFileSync(
 );
 // version.json: dicek game yang sedang terbuka di lobi; kalau beda, halaman dimuat ulang
 writeFileSync(join(out, 'version.json'), JSON.stringify({ v: version }));
+// Halaman depan semua game (sylvaniaharco.com/games/): satu file, route-nya di wrangler.jsonc
+cpSync(join(root, 'hub', 'index.html'), join(root, 'dist', 'games', 'index.html'));
 console.log('Build selesai →', out, `(versi ${version}, ${precache.length} file)`);

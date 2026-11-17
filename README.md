@@ -131,6 +131,9 @@ Live di **https://sylvaniaharco.com/games/capsa/** lewat Worker `capsa` (file st
 (Workers & Pages → Import a repository): build `npm run build`, deploy `npx wrangler deploy`, production branch `main`.
 **Merge/push ke `main` = langsung live.** Route `sylvaniaharco.com/games/capsa*` diatur di `wrangler.jsonc`.
 
+Worker ini juga menyajikan **halaman depan semua game** di https://sylvaniaharco.com/games/ (`hub/index.html`, route `/games` dan `/games/`).
+Game baru → tambah satu baris di array `GAMES` di file itu.
+
 ## Struktur
 
 - `src/engine/` — murni, tanpa DOM: `cards` (kartu + RNG berseed), `hands` (nilai kombinasi), `special` (kartu spesial),

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Capsa Kung2",
   "short_name": "Capsa Kung2",
-  "description": "Capsa susun 13 kartu: kamu lawan 3 pemain, meja koin 5, 10, dan 20 per poin.",
+  "description": "Capsa susun 13 kartu atau Capsa 6 kartu (susun 1-2-3): lawan AI, bareng teman, atau Ranked meja 5, 10, dan 20.",
   "lang": "id",
   "start_url": "./",
   "scope": "./",

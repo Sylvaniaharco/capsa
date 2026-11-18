@@ -114,6 +114,10 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   Hasil simulasi (2000 ronde, poin/ronde pemain "bawah sekuat mungkin" vs 3 bot): Mudah −2,0, Sedang −3,0, Sulit −5,0.
 - Teks UI bahasa Indonesia. Ikon lambang kartu pakai SVG `<symbol>` di `index.html` (bukan karakter ♠♥, yang di Android bisa jadi emoji).
 
+- **Musik latar** = salinan `src/ui/music.js` repo games-mahjong0hk (generatif Web Audio, tanpa file), setelan nyala/mati di localStorage `mjhk-music`
+  (sama dengan Mahjong, jadi berlaku di semua game). `initMusic([tombol...], { label })`: tombol `data-music="label"` = tulisan di lobi, lainnya ikon 🎵/🔇.
+  Kalau musik Mahjong berubah, salin lagi (bagian suara jangan diubah sendiri).
+
 ## PWA
 
 - `manifest.webmanifest`: **jangan** pakai `"orientation": "landscape"` atau `display: fullscreen` (di HP ColorOS app terpasang jadi tidak mau

@@ -11,6 +11,7 @@ import { STAKES, minEntry, normalizeWallet, coinDelta, applyDelta, isBroke, STAR
 import { pickBots, clampAvatar, AVATAR_COUNT } from './engine/roster.js';
 import { cardEl, backEl } from './ui/cardview.js';
 import { sfx, setSound } from './ui/sfx.js';
+import { initMusic } from './ui/music.js';
 import { canShowInstall, installApp, onInstallChange } from './ui/install.js';
 import { fetchAccount, fetchTicket, loginUrl, logout, installErrorLog } from './ui/account.js';
 import { GRACE_MS, ROOM_CODE } from './engine/room.js';
@@ -1414,6 +1415,8 @@ async function checkUpdate() {
 }
 
 // ---------- mulai ----------
+// musik latar: sama dengan Mahjong Kung2 (src/ui/music.js), mulai setelah sentuhan pertama
+initMusic([document.getElementById('btnMusic')], { label: (on) => `Musik: ${on ? 'nyala' : 'mati'}` });
 renderEmblem();
 renderLobby();
 show('lobby');

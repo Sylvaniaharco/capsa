@@ -4,13 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Sylvania Games — Game Kung2 sekeluarga</title>
-<meta name="description" content="Kumpulan game Sylvania: Mahjong Kung2, Capsa Kung2, Doudizhu Kung2, DOM Racer, dan game baru berikutnya. Gratis, langsung main di browser HP atau komputer." />
+<meta name="description" content="Kumpulan game Sylvania: Mahjong Kung2, Capsa Kung2, Doudizhu Kung2, Capsa Banting Kung2, DOM Racer, dan game baru berikutnya. Gratis, langsung main di browser HP atau komputer." />
 <meta name="theme-color" content="#120d24" />
 <link rel="canonical" href="https://sylvaniaharco.com/games/" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Sylvania Games" />
 <meta property="og:title" content="Sylvania Games — Game Kung2 sekeluarga" />
-<meta property="og:description" content="Mahjong Kung2, Capsa Kung2, Doudizhu Kung2, DOM Racer. Gratis, langsung main di browser." />
+<meta property="og:description" content="Mahjong Kung2, Capsa Kung2, Doudizhu Kung2, Capsa Banting Kung2, DOM Racer. Gratis, langsung main di browser." />
 <meta property="og:url" content="https://sylvaniaharco.com/games/" />
 <meta property="og:image" content="https://sylvaniaharco.com/games/mahjonghk/icons/icon-512.png" />
 <link rel="icon" href="/games/mahjonghk/icons/favicon-32.png" sizes="32x32" />
@@ -183,7 +183,7 @@
           Gratis · tanpa install · langsung main
         </span>
         <h1>Game seru buat <span class="hl">main bareng keluarga</span></h1>
-        <p class="lead">Mahjong, capsa, doudizhu, sampai balap kart. Main sendiri lawan AI, ajak teman lewat link meja, atau adu koin di Ranked. Jalan di HP, tablet, dan komputer.</p>
+        <p class="lead">Mahjong, capsa, capsa banting, doudizhu, sampai balap kart. Main sendiri lawan AI, ajak teman lewat link meja, atau adu koin di Ranked. Jalan di HP, tablet, dan komputer.</p>
         <div class="cta">
           <a class="btn primary" href="#daftar">Pilih game
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -205,7 +205,7 @@
     <section class="feats" id="akun">
       <div class="feat">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
-        <div><h4>Satu akun Google</h4><p>Masuk sekali, berlaku di Mahjong Kung2, Capsa Kung2, dan Doudizhu Kung2. Koin Mahjong & Capsa satu saldo.</p></div>
+        <div><h4>Satu akun Google</h4><p>Masuk sekali, berlaku di Mahjong Kung2, Capsa Kung2, Doudizhu Kung2, dan Capsa Banting Kung2. Koinnya juga satu saldo.</p></div>
       </div>
       <div class="feat">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a4 4 0 0 0-5-3.9M9 20H2v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/><circle cx="7" cy="7" r="3.5"/><circle cx="17" cy="8" r="3"/></svg></div>
@@ -230,6 +230,8 @@
 
 <script>
 // Daftar game. Tambah game baru = tambah satu objek. status: 'live' | 'new' (live + label Baru) | 'soon' (belum bisa dibuka).
+// probe (opsional) = file kecil di game itu (mis. version.json): kartu tampil "segera hadir" sampai file itu bisa diambil, lalu jadi kartu biasa
+// (untuk game yang Worker-nya belum tentu sudah tersambung di Cloudflare — supaya hub tidak pernah menautkan halaman 404).
 // c1..c4 = warna sampul, cahaya, tombol, teks tombol. deco = huruf/simbol samar di sampul.
 const GAMES = [
   {
@@ -247,8 +249,15 @@ const GAMES = [
   {
     name: 'Doudizhu Kung2', url: '/games/doudizhu/', icon: '/games/doudizhu/icons/icon-512.png', status: 'new',
     desc: 'Doudizhu (Lawan Tuan Tanah) 3 pemain: satu tuan tanah lawan dua petani. Aturan rumah: panggil/rebut tuan tanah, tiap bom gandakan skor.',
-    tags: ['Lawan 2 bot', 'Meja teman', 'Ranked rating'],
+    tags: ['Lawan 2 bot', 'Meja teman', { t: 'Ranked 5/10/20', coin: 1 }],
     c1: '#4a0f12', c2: '#d8892b', c3: '#ffd45a', c4: '#3a0b00', deco: ['地', '主', '2', 'A', 'K'],
+  },
+  {
+    name: 'Capsa Banting Kung2', url: '/games/capsabanting/', icon: '/games/capsabanting/icons/icon-512.png', status: 'new',
+    probe: '/games/capsabanting/version.json',
+    desc: 'Capsa Banting 4 pemain, 13 kartu: pemegang 3♦ jalan duluan, habiskan kartu paling cepat. Sisa banyak kena pengali, tiap kartu 2 denda +4.',
+    tags: ['Lawan 3 bot', 'Meja teman', { t: 'Ranked 5/10/20', coin: 1 }],
+    c1: '#0c1e48', c2: '#2f62b0', c3: '#ffd45a', c4: '#0a1a40', deco: ['2', '3', 'A', 'K', '♠'],
   },
   {
     name: 'DOM Racer', url: '/games/domracer/', icon: '/games/domracer/icons/icon-192.png', status: 'live',
@@ -286,9 +295,20 @@ function card(g) {
       <div class="play"><small>Gratis · di browser</small><b>Main ›</b></div></div></a>`;
 }
 
-document.getElementById('grid').innerHTML = GAMES.map(card).join('');
-const live = GAMES.filter((g) => g.status !== 'soon').length;
-document.getElementById('count').textContent = `${live} game siap dimainkan`;
+const grid = document.getElementById('grid');
+grid.innerHTML = GAMES.map((g, i) => `<div data-g="${i}" style="display:contents">${card(g.probe ? { ...g, status: 'soon' } : g)}</div>`).join('');
+let live = GAMES.filter((g) => g.status !== 'soon' && !g.probe).length;
+const showCount = () => { document.getElementById('count').textContent = `${live} game siap dimainkan`; };
+showCount();
+GAMES.forEach((g, i) => {
+  if (!g.probe || g.status === 'soon') return;
+  fetch(g.probe, { cache: 'no-store' }).then((r) => {
+    if (!r.ok || !(r.headers.get('content-type') || '').includes('json')) return;
+    grid.querySelector(`[data-g="${i}"]`).innerHTML = card(g);
+    live++;
+    showCount();
+  }).catch(() => { /* belum live: tetap "segera hadir" */ });
+});
 document.getElementById('yr').textContent = new Date().getFullYear();
 
 // karakter Kung2 (avatar yang sama dengan bot di Mahjong & Capsa): 7 dari 12, susunan tetap

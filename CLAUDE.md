@@ -26,6 +26,8 @@ Plus **Capsa 6 kartu** (susun 1-2-3, 3–8 pemain, hanya lawan AI). Saudara dari
   (satu file, CSS/JS di dalamnya) → `dist/games/index.html`, route `sylvaniaharco.com/games` + `/games/` di `wrangler.jsonc`.
   Route hanya dua alamat itu, jadi file lain di `dist/games/` (selain `capsa/`) tidak tersaji. Daftar game = array `GAMES` di file itu
   (status `live`/`new`/`soon`); gambar diambil dari folder tiap game (`/games/mahjonghk/icons`, `/games/domracer/icons`, ...).
+  Game yang Worker-nya baru (mis. Capsa Banting) diberi `probe` (`version.json` game itu): kartu tampil "segera hadir" sampai file itu bisa
+  diambil, jadi hub tidak pernah menautkan halaman 404.
   Akun: baca `/games/mahjonghk/api/me`, login `?next=games` (kunci `games` di `NEXT` repo Mahjong). DOM Racer = repo games-kart-racer.
 - Deploy otomatis oleh Cloudflare dari branch `main` (Worker `capsa`; build `npm run build`, deploy `npx wrangler deploy`).
   **Merge/push ke `main` = langsung live.** Kerjakan di branch, lalu buat PR; CI (`.github/workflows/test.yml`) harus hijau sebelum merge.

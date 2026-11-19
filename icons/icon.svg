@@ -64,7 +64,7 @@
     <!-- tulisan emas (gaya logo Mahjong Kung2) -->
     <g font-family="Cinzel, Georgia, serif" font-weight="900" text-anchor="middle" filter="url(#drop)">
       <text x="256" y="424" font-size="92" letter-spacing="2" fill="url(#goldtxt)" stroke="#4a1405" stroke-width="12" stroke-linejoin="round" paint-order="stroke">CAPSA</text>
-      <text x="256" y="480" font-size="58" letter-spacing="3" fill="url(#goldtxt)" stroke="#4a1405" stroke-width="10" stroke-linejoin="round" paint-order="stroke">KUNG2</text>
+      <text x="256" y="476" font-size="46" letter-spacing="1" textLength="372" lengthAdjust="spacingAndGlyphs" fill="url(#goldtxt)" stroke="#4a1405" stroke-width="9" stroke-linejoin="round" paint-order="stroke">SUSUN KUNG2</text>
     </g>
   </g>
 </svg>

@@ -1352,9 +1352,9 @@ function renderOnlineResultButtons() {
     }
     return;
   }
-  const host = O.view.host === O.view.seat;
-  b.disabled = !host;
-  b.textContent = host ? 'Ronde berikutnya' : 'Menunggu pembuat meja…';
+  // meja teman: siapa pun yang duduk boleh melanjutkan, jadi meja tidak nyangkut kalau pembuatnya diam
+  b.disabled = O.view.seat < 0;
+  b.textContent = 'Ronde berikutnya';
 }
 
 $('#rankedTables').addEventListener('click', (e) => {

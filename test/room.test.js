@@ -132,9 +132,9 @@ test('ronde penuh: bot menyusun, hasil zero-sum, total bertambah, ronde berikutn
   const v = viewFor(r, 1);
   assert.equal(v.hand, null);
   assert.deepEqual(v.last, r.last);
-  assert.equal(next(r, B.id, 8, T0).ok, false, 'hanya host');
+  assert.equal(next(r, 'bukansiapasiapa', 8, T0).ok, false, 'yang tidak duduk di meja ditolak');
   const before = [...r.totals];
-  assert.equal(next(r, A.id, 8, T0 + 99).ok, true);
+  assert.equal(next(r, B.id, 8, T0 + 99).ok, true, 'bukan cuma host: siapa pun yang duduk boleh lanjut');
   assert.equal(r.round, 2);
   assert.equal(r.status, 'arrange');
   assert.deepEqual(r.totals, before);

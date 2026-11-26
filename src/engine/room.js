@@ -95,10 +95,15 @@ export function start(room, id, seed, now, rnd) {
   return { ok: true };
 }
 
-/** Ronde berikutnya (host, dari layar hasil). */
+/**
+ * Ronde berikutnya (dari layar hasil). Siapa pun yang masih duduk boleh menekannya — kalau hanya pembuat meja,
+ * meja nyangkut waktu dia diam saja.
+ */
 export function next(room, id, seed, now) {
   if (room.status !== 'result') return { ok: false, error: 'Ronde belum selesai' };
-  if (id !== room.hostId) return { ok: false, error: 'Hanya pembuat meja yang bisa melanjutkan' };
+  if (room.ranked) return { ok: false, error: 'Ronde berikutnya jalan sendiri' }; // Ranked: dijadwalkan server, bukan ditekan pemain
+  const seat = seatOf(room, id);
+  if (seat < 0 || room.seats[seat].left) return { ok: false, error: 'Kamu tidak duduk di meja ini' };
   if (!humans(room).length) return { ok: false, error: 'Tidak ada pemain' };
   dealRound(room, seed, now);
   return { ok: true };

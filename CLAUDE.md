@@ -53,6 +53,8 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
 ## Aturan kode
 
 - `src/engine/` murni (tanpa DOM), dipakai browser & Node. Jangan pakai `Math.random()` di engine; pakai RNG berseed (`mulberry32`).
+- Durable Object diuji di `test/worker.test.js`: `cloudflare:workers` diganti tiruan lewat loader hook (`test/helpers/cfstub.mjs`) dan
+  `Date.now` dikunci supaya alarm bisa dimajukan. Perubahan di `worker/room.js` / `worker/lobby.js` → jalankan `npm test`.
 - Semua angka aturan (bonus, pengali tembus, poin kartu spesial, waktu susun) ada di `src/engine/rules.js`.
   Ubah aturan → update README + tes (`test/scoring.test.js`, `test/special.test.js`), lalu `npm run calibrate`
   karena AI menaksir nilai susunan dari bonus & pengali itu.
@@ -72,10 +74,15 @@ Jalankan `npm test` sebelum commit yang menyentuh `src/engine/` atau `worker/`.
   "Ranked" (`reserve`, `rankedDue`, `startRanked`, `nextRanked`, `settlePayload`, `applySettle`): tanpa host, mulai 8 dtk setelah pemain
   pertama, ronde berikutnya otomatis, pemain baru saat ronde jalan menunggu lalu menggantikan bot, tidak menyusun 2 ronde = dikeluarkan,
   koin kurang = dilepas. Tiap ronde koin diselesaikan di server akun (`env.MAHJONG.settle`, aman diulang; gagal → dicoba lagi lewat
-  alarm, ronde berikutnya menunggu). `seat.userId` dan saldo lawan **tidak pernah** masuk `viewFor`. Belum ada rating/leaderboard/bonus,
+  alarm, ronde berikutnya menunggu). `settle()` dijaga `this.settling`: RPC-nya membuka input gate DO, jadi tanpa itu satu ronde bisa
+  dikirim dua kali sekaligus. `CapsaRoom` mengabari `CapsaLobby` (`reopen` / `release`, bawa taruhan + `six` supaya slot-nya benar)
+  waktu meja longgar lagi atau ditutup, supaya meja lama dipakai lagi dan pemain tidak kepecah ke meja baru yang isinya bot semua.
+  `seat.userId` dan saldo lawan **tidak pernah** masuk `viewFor`. Belum ada rating/leaderboard/bonus,
   dan belum ada anti-kolusi (sengaja: pemain masih sedikit; buang koin ke teman di capsa mahal karena kalah ke semua lawan).
 - **Meja online bareng teman** (tanpa koin, hanya poin): logika mejanya murni di `src/engine/room.js` (dites di `test/room.test.js`),
-  `worker/room.js` hanya penyimpanan + WebSocket + alarm. Server yang membagi kartu; klien hanya menerima `viewFor(room, seat)` —
+  `worker/room.js` hanya penyimpanan + WebSocket + alarm. `start` hanya host, tapi `next` (ronde berikutnya) boleh siapa saja yang
+  masih duduk — kalau host-nya diam, meja nyangkut. `next` **menolak meja Ranked** (ronde berikutnya dijadwalkan server);
+  dulu itu kejaga tidak sengaja karena `hostId` meja Ranked selalu null, sekarang dicek eksplisit. Server yang membagi kartu; klien hanya menerima `viewFor(room, seat)` —
   **jangan pernah** mengirim kartu/susunan lawan sebelum ronde dibuka, dan jangan mengirim id pemain. Kiriman pemain divalidasi server
   (`submit`: kartunya harus persis kartu yang dibagikan dan susunannya sah). Pemain dikenali dari id acak buatan HP (`capsa-cid`) + nama,
   **bukan akun** — cukup karena tidak ada koin. Fitur yang memakai koin akun (Ranked) wajib memverifikasi akun lewat server Mahjong.

@@ -7,6 +7,9 @@ const randomCode = () => [...crypto.getRandomValues(new Uint8Array(5))].map((x) 
 /** Kunci rahasia kursi: hanya diberikan ke pemain yang kursinya dipesan. */
 const randomKey = () => [...crypto.getRandomValues(new Uint8Array(24))].map((x) => (x % 36).toString(36)).join('');
 
+/** Kunci antrean: satu per jenis meja (13 kartu / 6 kartu per jumlah pemain) dan per taruhan. */
+const slotOf = (stake, six) => (six ? `six${six}:${stake}` : String(stake));
+
 export class CapsaLobby extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
@@ -38,7 +41,7 @@ export class CapsaLobby extends DurableObject {
       }
       // 2) meja terbuka untuk taruhan ini, kalau tidak ada/penuh buat meja baru
       let lastError = 'Gagal mencari meja';
-      const slot = six ? `six${six}:${stake}` : stake; // antrean terpisah per jenis meja (13 kartu / 6 kartu per jumlah pemain)
+      const slot = slotOf(stake, six); // antrean terpisah per jenis meja (13 kartu / 6 kartu per jumlah pemain)
       for (let i = 0; i < 3; i++) {
         let code = st.open[slot];
         if (!code) {
@@ -59,5 +62,26 @@ export class CapsaLobby extends DurableObject {
     } finally {
       await this.ctx.storage.put('state', st);
     }
+  }
+
+  /**
+   * Meja Ranked bilang kursinya longgar lagi (pemain keluar / dilepas). Tanpa ini, meja yang pernah penuh tidak pernah
+   * ditawarkan lagi dan pemain baru selalu bikin meja baru — pemainnya jadi kepecah lawan bot semua.
+   */
+  async reopen(stake, code, six = 0) {
+    const st = this.state;
+    const slot = slotOf(stake, six);
+    if (st.open[slot]) return; // sudah ada meja lain yang menerima pemain
+    st.open[slot] = code;
+    await this.ctx.storage.put('state', st);
+  }
+
+  /** Meja ditutup / dihapus: jangan ditawarkan lagi. */
+  async release(stake, code, six = 0) {
+    const st = this.state;
+    const slot = slotOf(stake, six);
+    if (st.open[slot] !== code) return;
+    delete st.open[slot];
+    await this.ctx.storage.put('state', st);
   }
 }
